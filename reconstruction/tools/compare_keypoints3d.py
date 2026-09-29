@@ -1,10 +1,13 @@
 """Compare two EasyMocap keypoints3d/ folders (BODY25, meters) frame by frame.
 
-Typical use: REF = result with all cameras (pseudo ground truth),
+Typical use: REF = true joints from synth_rig.py (gt/keypoints3d), or on real data the
+                   all-camera result (a reference estimate, not independent ground truth);
              TEST = result with a camera subset / shifted camera.
 
 Reports MPJPE and root-relative MPJPE (mid-hip aligned) in millimeters,
-plus per-joint error and how many REF frames TEST is missing.
+plus per-joint error, the share of reference joints TEST reconstructed, and how many
+REF frames TEST is missing. MPJPE is the main number for a calibrated rig; root-relative
+MPJPE also absorbs the error of the mid-hip joint itself, so it can be the larger one.
 
 Usage:
   python compare_keypoints3d.py REF/keypoints3d TEST/keypoints3d [--offset N] [--pid 0] [--csv out.csv]
@@ -51,6 +54,7 @@ def main():
     errs, rel_errs = [], []
     per_joint = [[] for _ in BODY25]
     matched = 0
+    ref_joints = both_joints = 0
     for t_idx, kt in test.items():
         kr = ref.get(t_idx + args.offset)
         if kr is None:
@@ -58,6 +62,8 @@ def main():
         matched += 1
         n = min(len(kr), len(kt), len(BODY25))
         valid = (kr[:n, 3] > 0) & (kt[:n, 3] > 0)
+        ref_joints += int((kr[:n, 3] > 0).sum())
+        both_joints += int(valid.sum())
         diff = np.linalg.norm(kr[:n, :3] - kt[:n, :3], axis=1) * 1000.
         for j in np.where(valid)[0]:
             per_joint[j].append(diff[j])
@@ -73,6 +79,8 @@ def main():
         raise SystemExit('no overlapping valid joints between {} and {}'.format(args.ref, args.test))
 
     print('frames: ref={} test={} matched={} missing_in_test={}'.format(len(ref), len(test), matched, missing))
+    print('joints reconstructed: {:.1f}% of reference joints in matched frames'.format(
+        100. * both_joints / max(ref_joints, 1)))
     print('MPJPE           mean {:7.1f} mm   median {:7.1f} mm'.format(np.mean(errs), np.median(errs)))
     if rel_errs:
         print('root-rel MPJPE  mean {:7.1f} mm   median {:7.1f} mm'.format(np.mean(rel_errs), np.median(rel_errs)))

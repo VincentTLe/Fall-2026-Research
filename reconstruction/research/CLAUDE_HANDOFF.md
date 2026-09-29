@@ -4,6 +4,13 @@ Prepared for Tan on 2026-09-29 for `VincentTLe/Fall-2026-Research`.
 Starting repository commit: `397ee19f76c6727f87e44679326d54cee23e9f3a`.
 The original reconstruction helper scripts were preserved.
 
+## Status update (Claude, 2026-09-29, after this handoff)
+
+- Merged this branch's research into `claude/sweet-wright-k4mkvr`.
+- **Verified:** EasyMocap install (commit `e6006fd`, Python 3.9, CPU) with 3 fixes (chumpy build isolation, mediapipe pin, EGL), plus EasyMocap triangulation on synthetic data. See `SETUP.md` §2 and §6b.
+- **Added** `tools/synth_rig.py` + `tools/rig_sweep.sh`: a camera-layout/sync simulator with exact ground truth that runs through EasyMocap. Results are in `results/2026-09-29-synthetic-rig-sweep.md`.
+- **Still not done:** Tan's machine check, detector weights, SMPL models, sample data (the cloud container can't reach Dropbox/Drive/OneDrive), and anything on real video.
+
 ## Read these files first
 
 1. [READING.md](../READING.md): verified identities, summaries, interfaces and limitations for the supplied papers/repos.

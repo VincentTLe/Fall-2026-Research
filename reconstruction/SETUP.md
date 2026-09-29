@@ -9,7 +9,7 @@ Sources: [EasyMocap repo](https://github.com/zju3dv/EasyMocap) (`doc/installatio
 
 ## Source check: September 29, 2026
 
-The [collected source notes](research/SOURCE_NOTES.md) verify upstream paths and distinguish the legacy and configurable workflows. **No install or pipeline run has been verified by this source-collection update.** Download links below are acquisition routes, not downloaded assets.
+The [collected source notes](research/SOURCE_NOTES.md) verify upstream paths and distinguish the legacy and configurable workflows. The source-collection update itself ran nothing; the install and triangulation were verified afterwards (§2, §6b). Download links below are acquisition routes, not downloaded assets.
 
 The current public quickstart uses `street_dance`; the legacy repo guide uses `zju-ls-feng`. CPU fallback exists in the current HRNet component, but end-to-end CPU feasibility and speed remain untested.
 
@@ -38,36 +38,54 @@ The current public quickstart uses `street_dance`; the legacy repo guide uses `z
 
 ---
 
-## 2. Environment *(unverified)*
+## 2. Environment
 
-Python 3.9 below is a candidate compatibility choice, not a universal EasyMocap requirement. The legacy upstream guide lists Python >=3.6 and older PyTorch versions; current requirements also pin old dependencies. This combination must be resolved and tested in an isolated environment before being treated as reproducible.
+✅ **Verified 2026-09-29** on a Linux x86-64 cloud container (4 CPU cores, **no GPU**), EasyMocap commit `e6006fd3814d5f8ad45a7ce965beb9bcc90767f2`, Python 3.9.23 (via `uv`; conda works the same way). What was verified: the install below, the imports, and EasyMocap's multi-view **triangulation** (`apps/demo/mv1p.py`) on synthetic data (§6b). **Not yet verified:** 2D detection (needs detector weights), SMPL fitting (needs SMPL models), rendering, GPU speed, Windows.
+
+The plain upstream steps fail in three places. The fixes are marked `# FIX` below:
 
 ```bash
-conda create -n easymocap python=3.9 -y
+conda create -n easymocap python=3.9 -y        # or: uv venv -p 3.9 easymocap
 conda activate easymocap
 
-# PyTorch: pick the build matching your driver (see https://pytorch.org/get-started/previous-versions/)
-# e.g. for a CUDA 11.8-capable driver:
-pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cu118
+# PyTorch: pick the build matching your driver (https://pytorch.org/get-started/previous-versions/).
+# Verified: the default PyPI build (2.0.1+cu117), which also runs CPU-only.
+pip install torch==2.0.1 torchvision==0.15.2
 
 git clone https://github.com/zju3dv/EasyMocap.git
 cd EasyMocap
-pip install "numpy<1.24"          # chumpy uses np.bool / np.int, removed in 1.24
-pip install -r requirements.txt
-pip install pyrender               # rendering the SMPL mesh
-python setup.py develop            # installs the package + the `emc` command
+echo "numpy<1.24" > constraints.txt             # chumpy uses np.bool / np.int, removed in 1.24
+
+# FIX 1: chumpy's setup.py imports pip, so it fails under pip's default build isolation
+#        ("ModuleNotFoundError: No module named 'pip'").
+pip install --no-build-isolation "git+https://github.com/mattloper/chumpy.git"
+
+# FIX 2: requirements.txt lists chumpy again (triggers FIX 1's error) and pins
+#        mediapipe==0.10.0, which has no Linux/Python 3.9 wheel. Only the optional
+#        mediapipe keypoint backend uses it.
+grep -v chumpy requirements.txt | sed 's/^mediapipe==0.10.0$/mediapipe/' > requirements-fixed.txt
+pip install -r requirements-fixed.txt -c constraints.txt
+
+pip install pyrender -c constraints.txt         # rendering the SMPL mesh
+python setup.py develop                         # installs the package + the `emc` command
+pip check                                       # verified: "No broken requirements found."
 ```
 
-Sanity check:
+Verified versions: torch 2.0.1, numpy 1.23.5, opencv-python 4.11.0.86, chumpy 0.71, mediapipe 1.0.1, pyrender 0.1.45, pytorch-lightning 1.5.0, ultralytics 8.4.165, setuptools 59.5.0.
+
+Sanity check (verified output: `2.0.1+cu117 False` on the CPU container):
 ```bash
 python -c "import torch, easymocap, chumpy; print(torch.__version__, torch.cuda.is_available())"
 which emc
 ```
 
-**Headless GPU server (no monitor):** pyrender needs an offscreen GL backend:
+**Which machine?** Before installing, run `nvidia-smi` on the machine you plan to use. EasyMocap's detectors and SMPL fitting are written for NVIDIA CUDA. Triangulation runs fine on CPU, but full-video detection on CPU will be slow. An AMD GPU won't be used by this PyTorch build. If your laptop has no NVIDIA GPU, ask Prof. Cao for a lab GPU server (Linux) and use this guide there.
+
+**Headless server (no monitor):** pyrender needs an offscreen GL backend:
 ```bash
 export PYOPENGL_PLATFORM=egl      # or: osmesa (slower, CPU)
 ```
+FIX 3: `ImportError: ('Unable to load EGL library' ...)` means the system EGL library is missing. On Ubuntu: `sudo apt install libegl1` (or `libosmesa6` for osmesa). This only matters for rendering (`--vis_smpl`); triangulation doesn't need it.
 
 ---
 
@@ -140,7 +158,9 @@ The converter writes `intri.yml`/`extri.yml` (T converted to meters, cameras nam
 
 ## 6. Experiments: how many cameras, which layout, how much sync error
 
-Both experiments use the all-camera result as a pseudo ground truth.
+### 6a. On real multi-view data (needs a sample dataset + detector)
+
+These experiments use the all-camera result as a **reference estimate**. Agreement with it is not independent ground-truth accuracy.
 
 ```bash
 # Reference: all views
@@ -171,6 +191,25 @@ Suggested table for the Oct 20 meeting:
 
 Look up each camera's position with `apps/calibration/vis_camera_by_open3d.py`, or compute `center = -Rᵀ T` from `extri.yml`, so "evenly spread" is based on real angles.
 
+### 6b. Synthetic rig with exact ground truth (runs now, no downloads) ✅
+
+`tools/synth_rig.py` builds an EasyMocap dataset for any camera layout, with a scripted squat + arm-raise motion. It writes cameras, 2D keypoints (projected + noise) and the true 3D joints. EasyMocap's own triangulation then runs on it, and we score against the truth. It needs only the §2 environment: no SMPL, no weights, no GPU.
+
+```bash
+# one layout (5 cams on a 3 m circle, 1.6 m high)
+python reconstruction/tools/synth_rig.py /tmp/rig --cams 5 --radius 3 --height 1.6
+cd EasyMocap && python apps/demo/mv1p.py /tmp/rig --out /tmp/rig/output --body body25
+#   -> stops with "data/smplx/smpl does not exist" AFTER writing output/keypoints3d (expected without SMPL)
+python ../reconstruction/tools/compare_keypoints3d.py /tmp/rig/gt/keypoints3d /tmp/rig/output/keypoints3d
+
+# the hardware team's actual plan (meters, z up, subject at the origin)
+python reconstruction/tools/synth_rig.py /tmp/plan --positions "3,0,1.6; 0,3,2.2; -3,0,1.6; 0,-3,2.2; 2.1,2.1,0.5"
+
+# full comparison table (layouts, counts, noise, sync lag): ~5 min on 4 CPU cores
+EASYMOCAP=$PWD/EasyMocap bash reconstruction/tools/rig_sweep.sh /tmp/rig_sweep
+```
+Results from 2026-09-29 and how to read them: [`results/2026-09-29-synthetic-rig-sweep.md`](results/2026-09-29-synthetic-rig-sweep.md).
+
 ---
 
 ## 7. Our GoPro data
@@ -193,4 +232,7 @@ Log of runs:
 
 | Date | Step | Error | Fix |
 |---|---|---|---|
-| | | | |
+| 2026-09-29 | `pip install -r requirements.txt` | chumpy: `ModuleNotFoundError: No module named 'pip'` | `pip install --no-build-isolation git+https://github.com/mattloper/chumpy.git`, then drop chumpy from requirements (§2 FIX 1) |
+| 2026-09-29 | `pip install -r requirements.txt` | `No matching distribution found for mediapipe==0.10.0` (Linux, Py 3.9) | unpin mediapipe, keep `numpy<1.24` as a constraint (§2 FIX 2) |
+| 2026-09-29 | `import pyrender` with `PYOPENGL_PLATFORM=egl` | `Unable to load EGL library` | `apt install libegl1` (§2 FIX 3); not needed for triangulation |
+| 2026-09-29 | `mv1p.py` without SMPL models | `AssertionError: Path data/smplx/smpl does not exist!` | expected until SMPL is downloaded (§3); `keypoints3d/` is already written |

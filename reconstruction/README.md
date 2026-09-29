@@ -7,7 +7,9 @@ Goal for the semester: **synchronized multi-view GoPro video → calibrated, rep
 | `README.md` (this) | Plan, timeline, interfaces with other teams, risks |
 | [`SETUP.md`](SETUP.md) | Step-by-step EasyMocap setup + run guide (fill in "verified" notes as you go) |
 | [`READING.md`](READING.md) | Reading list: ZJU core works + Prof. Cao's extra directions, with what to pull from each |
-| [`tools/`](tools/) | Small helper scripts (ZJU-MoCap converter, view/sync ablation, 3D keypoint comparison) |
+| [`tools/`](tools/) | Helper scripts: ZJU-MoCap converter, view/sync variants, 3D keypoint comparison, synthetic rig simulator (`synth_rig.py`, `rig_sweep.sh`) |
+| [`results/`](results/) | Experiment write-ups (first one: [synthetic rig sweep](results/2026-09-29-synthetic-rig-sweep.md)) |
+| [`research/`](research/) | Verified source notes for all supplied links, downloads checklist, citations |
 
 ---
 
@@ -42,29 +44,35 @@ You are the **consumer of everyone else's output**. So besides running EasyMocap
 
 ## 3. Timeline (starting Tue Sep 29, 2026)
 
+**Status on Sep 29:**
+- EasyMocap installs and its triangulation runs on CPU. This was verified in a cloud container with three install fixes, now in `SETUP.md` §2.
+- A synthetic layout/sync comparison already exists ([results](results/2026-09-29-synthetic-rig-sweep.md)). Proposed sync target: ≤ 1 frame at 60 fps.
+- Still open: your machine, SMPL models, detector weights, sample data, and anything on real video.
+
 Meetings are Tuesdays at 12:30. Each week ends with something to show at the next meeting.
 
 ### Week 1: Sep 29 – Oct 4: Access, environment, reading
 - [ ] **Today:** sign the ZJU-MoCap agreement and email it (see `SETUP.md` §1). Approval can take days to weeks, so start it first.
 - [ ] Register on the SMPL / SMPLify (neutral model) / SMPL-X sites and download the models.
-- [ ] Get GPU access (lab machine, or ask Prof. Cao which server). Record the GPU, CUDA driver and OS in `SETUP.md`.
-- [ ] Create the conda env and install EasyMocap (`SETUP.md` §2–3). Write down every error you hit and how you fixed it.
+- [ ] **Check your machine first:** run `nvidia-smi`. Without an NVIDIA GPU (e.g. an AMD Radeon laptop), ask Prof. Cao for a lab Linux GPU server. Record the GPU, CUDA driver and OS in `SETUP.md` §0.
+- [ ] Install EasyMocap with the verified steps (`SETUP.md` §2, including the 3 fixes). Then run the synthetic smoke test (`SETUP.md` §6b) to confirm your install matches the reference numbers (baseline ≈ 8.9 mm).
 - [ ] Read EasyMocap docs + **Neural Body** (introduces ZJU-MoCap) + **MVPose** (the multi-view matching/triangulation idea).
-- **Show on Oct 6:** env installed, screenshot of `python -c "import easymocap"`, a paragraph on how the pipeline works.
+- **Show on Oct 6:** env installed on your machine, the synthetic sweep table, and a paragraph on how the pipeline works.
 
 ### Week 2: Oct 5 – 11: Run the demo, understand the code
-- [ ] Download the public sample `zju-ls-feng` (23 calibrated cameras, 800 frames; no agreement needed).
+- [ ] Download a sample: `zju-ls-feng` (legacy guide, 23 cameras, 800 frames) or `street_dance` (current public quickstart). See `research/DOWNLOADS.md`.
 - [ ] Run the v0.1 pipeline (`apps/demo/mv1p.py`) → SMPL. Then run the v0.2 pipeline (`emc ... detect_triangulate_fitSMPL.yml`).
 - [ ] Trace the code: `extract_video.py` → 2D keypoints (`annots/`) → triangulation → SMPL fitting. Write down which function does each step (for the team doc).
 - [ ] Start the **camera-count experiment** on the sample data (`tools/make_variant.py` + `tools/compare_keypoints3d.py`, see `SETUP.md` §6):
-  - reference = all 23 views
+  - reference = all 23 views (a reference estimate, not true ground truth; the synthetic sweep covers the true-GT side)
   - variants = several 5-view subsets (spread evenly around vs. front half vs. clustered)
 - **Show on Oct 13:** rendered SMPL overlay video + first table of "5 views vs 23 views" error.
 
 ### Week 3: Oct 12 – 18: Full ZJU-MoCap + decisions for hardware
 - [ ] If the agreement is approved: convert one LightStage sequence (e.g. 313 or 377) with `tools/zju_to_easymocap.py` and run the pipeline.
 - [ ] Finish the camera-count experiment: also try 4 vs 5 vs 6 views, if hardware is still deciding how many cameras to buy.
-- [ ] **Sync-tolerance experiment:** shift one view by 1, 2, 4 frames (`make_variant.py --shift`) and measure the error. Send the result to Danny/Katie.
+- [x] **Sync tolerance, synthetic:** ≤ 1 frame at 60 fps proposed ([results](results/2026-09-29-synthetic-rig-sweep.md)). Send it to Danny/Katie now.
+- [ ] Confirm on real data: shift one view by 1, 2, 4 frames (`make_variant.py --shift`).
 - [ ] Meet Seishin: agree on the calibration file format (Section 4). Run `check_calib.py` on a calibration they produce.
 - **Show on Oct 20:** recommendation for hardware (layout + count) and software (max sync offset).
 
@@ -80,7 +88,7 @@ Meetings are Tuesdays at 12:30. Each week ends with something to show at the nex
 
 ### November onward: Real rig + downstream
 - [ ] Process the first captures from the built rig; add a quality check per session (mean reprojection error, % frames with a fitted SMPL).
-- [ ] Pick **one** of Prof. Cao's directions to prototype on our data (suggestion in `READING.md`: rehab exercise assessment or motion→language, because they only need SMPL/joints we already produce).
+- [ ] Pick **one** of Prof. Cao's directions to prototype on our data (see `READING.md` §6 "Suggested sequence"). Before converting anything, inspect the target's real input arrays: joint order, axes, units, fps. For example, ExerciseLLM's released REHAB24-6 code uses 2D joints even though the paper describes 3D.
 
 ---
 
@@ -107,10 +115,11 @@ Put this in front of Seishin, Danny and Katie in Week 1–3. Every item here is 
 - Ask for: the reprojection error printed by `calib_intri.py` per camera, and the cube-check images from `check_calib.py`.
 
 **Camera settings (Danny, Katie):** these are the important ones for reconstruction
-- **Lens: Linear** (not Wide/SuperView/HyperView). EasyMocap/OpenCV uses a pinhole + 5-coefficient distortion model; GoPro's wide modes are fisheye-like and calibrate poorly with it.
+- **Lens: start with Linear** (not Wide/SuperView/HyperView). EasyMocap/OpenCV uses a pinhole + 5-coefficient distortion model, and GoPro's wide modes are fisheye-like. Whether a mode is acceptable is decided by Seishin's reprojection error, not by this rule, so test it rather than assume it.
 - **Stabilization (HyperSmooth): OFF.** Stabilization crops/warps each frame differently, so the intrinsics change from frame to frame and the calibration becomes invalid.
 - Fixed resolution + fps on all cameras (e.g. 1080p or 2.7K @ 60 fps). Shutter fixed and fast enough to avoid motion blur (e.g. 1/480 s or faster at 60 fps, lighting permitting). White balance and ISO fixed.
-- **Sync:** report the measured residual offset per camera, in frames. At 60 fps, 1 frame = 16.7 ms. My sync-tolerance experiment (Week 3) will say how much is acceptable.
+- **Sync:** report the measured residual offset per camera, in frames. At 60 fps, 1 frame = 16.7 ms. Proposed target from the synthetic sweep: **≤ 1 frame** (≤ 2 tolerable for slow rehab motion); to be confirmed on real data.
+- **Sharp frames matter most:** in the synthetic sweep, 2D keypoint error dominated everything else (3 → 8 px of 2D error made 3D error 2.7× worse). Fast shutter, good light, high resolution.
 - Rename downloaded files to `01.mp4` … `05.mp4` (by camera ID), and trim them to a common start frame (or give me the per-camera offsets and I'll trim).
 
 **Hardware (Ahsan, Huy, Nghiem):**
