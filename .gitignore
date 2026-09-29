@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+# SMPL/SMPL-X models are licensed per person; never commit them
+*.pkl
+*.npz
