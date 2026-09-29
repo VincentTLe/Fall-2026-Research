@@ -7,6 +7,12 @@ Sources: [EasyMocap repo](https://github.com/zju3dv/EasyMocap) (`doc/installatio
 
 ---
 
+## Source check: September 29, 2026
+
+The [collected source notes](research/SOURCE_NOTES.md) verify upstream paths and distinguish the legacy and configurable workflows. **No install or pipeline run has been verified by this source-collection update.** Download links below are acquisition routes, not downloaded assets.
+
+The current public quickstart uses `street_dance`; the legacy repo guide uses `zju-ls-feng`. CPU fallback exists in the current HRNet component, but end-to-end CPU feasibility and speed remain untested.
+
 ## 0. Machine log
 
 | Field | Value |
@@ -27,14 +33,14 @@ Sources: [EasyMocap repo](https://github.com/zju3dv/EasyMocap) (`doc/installatio
    - SMPL male/female v1.0.0: https://smpl.is.tue.mpg.de
    - SMPL neutral: https://smplify.is.tue.mpg.de
    - (Optional) SMPL-X: https://smpl-x.is.tue.mpg.de, and MANO/SMPL+H: https://mano.is.tue.mpg.de
-   - Licenses are per person and non-commercial. **Don't commit `.pkl` model files to this repo.**
-3. **Public sample data** (no agreement needed): `zju-ls-feng`, 23 cameras × 800 frames, [Dropbox](https://www.dropbox.com/s/24mb7r921b1g9a7/zju-ls-feng.zip?dl=0).
+   - Follow the terms of the exact model download and the lab's permitted use. **Don't commit `.pkl` model files to this repo.**
+3. **Publicly linked sample data** (download availability and terms not verified): `zju-ls-feng`, 23 cameras × 800 frames, [Dropbox](https://www.dropbox.com/s/24mb7r921b1g9a7/zju-ls-feng.zip?dl=0).
 
 ---
 
 ## 2. Environment *(unverified)*
 
-EasyMocap's code base is from 2021–2023. Old Python is intentional because `chumpy` (needed to load SMPL `.pkl`) breaks on Python ≥ 3.11 and NumPy ≥ 1.24.
+Python 3.9 below is a candidate compatibility choice, not a universal EasyMocap requirement. The legacy upstream guide lists Python >=3.6 and older PyTorch versions; current requirements also pin old dependencies. This combination must be resolved and tested in an isolated environment before being treated as reproducible.
 
 ```bash
 conda create -n easymocap python=3.9 -y
@@ -79,7 +85,7 @@ EasyMocap/data/smplx/
 
 **2D keypoint detector.** Choose one:
 - **OpenPose** (the v0.1 default, `--openpose <path>`): the best-documented path, but painful to build. Try it only if a pre-built copy exists on the lab machine.
-- **YOLO + HRNet** (no OpenPose build): the v0.1 path is `extract_video.py --mode yolo-hrnet`, which needs `data/models/yolov4.weights` and `data/models/pose_hrnet_w48_384x288.pth`. The v0.2 `emc` pipeline also uses `pose_hrnet_w48_384x288.pth`, and downloads `yolov5m` via `torch.hub` on the first run, so it needs internet. The download links in the repo's `installation.md` are empty; get them from the public docs' quickstart page or HRNet's official release.
+- **YOLO + HRNet** (no OpenPose build): the v0.1 path is `extract_video.py --mode yolo-hrnet`, which needs `data/models/yolov4.weights` and `data/models/pose_hrnet_w48_384x288.pth`. The v0.2 `emc` pipeline also uses `pose_hrnet_w48_384x288.pth`, and downloads `yolov5m` via `torch.hub` on the first run, so it needs internet. The legacy `installation.md` has empty detector links. The current [MyHRNet source](https://github.com/zju3dv/EasyMocap/blob/master/myeasymocap/backbone/hrnet/myhrnet.py) supplies upstream weight locations; download success has not been checked.
 
 **v0.2 path gotcha:** `config/mv1p/detect_triangulate_fitSMPL.yml` looks for the body model at different paths than v0.1. From the EasyMocap root, add symlinks so both pipelines use the same files:
 ```bash
@@ -113,7 +119,7 @@ emc --data config/datasets/mvimage.yml \
 Camera names must match between `intri.yml`, `extri.yml` and the `images/<name>/` folders. Check `ls ${data}/images` against the `names:` list in the yml before using `--sub_vis`.
 
 Outputs (see `doc/02_output.md`):
-- `keypoints3d/NNNNNN.json`: `[{"id": 0, "keypoints3d": [[x, y, z, conf] × 25]}]`, BODY25 joints, in meters.
+- `keypoints3d/NNNNNN.json`: `[{"id": 0, "keypoints3d": [[x, y, z, conf] × 25]}]`, BODY25 joints; coordinate units follow calibration and must be confirmed (use meters for this team's convention).
 - `smpl/NNNNNN.json`: `Rh` (global rotation), `Th` (translation), `poses` (first 3 set to 0), `shapes`. Note that EasyMocap's `Rh`/`Th` are not the same as SMPL's `global_orient`/`transl` (see `02_output.md`). This matters when exporting to other projects.
 
 What to look at: `--vis_repro` images (the reprojected skeleton should sit on the person in every view) and the rendered SMPL overlay.
