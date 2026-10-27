@@ -3,3 +3,11 @@ __pycache__/
 # SMPL/SMPL-X models are licensed per person; never commit them
 *.pkl
 *.npz
+
+# Local dependencies, downloaded research assets and generated runs
+external/
+.envs/
+.cache/
+downloads/
+data/
+local-runs/

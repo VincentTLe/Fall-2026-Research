@@ -7,22 +7,31 @@ Sources: [EasyMocap repo](https://github.com/zju3dv/EasyMocap) (`doc/installatio
 
 ---
 
+## Local Windows update: September 29, 2026
+
+The D: laptop environment now passes imports and `pip check`. Fresh YOLOv5/HRNet
+detection and triangulation have run on real `zju-ls-feng` footage. Use
+[SETUP_WINDOWS.md](SETUP_WINDOWS.md) for the exact CPU commands and
+[LOCAL_RUN_STATUS.md](LOCAL_RUN_STATUS.md) for verified output counts and the
+remaining SMPL-model blocker. The older cloud/synthetic record below is retained
+as history; it is not the complete current status.
+
 ## Source check: September 29, 2026
 
-The [collected source notes](research/SOURCE_NOTES.md) verify upstream paths and distinguish the legacy and configurable workflows. The source-collection update itself ran nothing; the install and triangulation were verified afterwards (§2, §6b). Download links below are acquisition routes, not downloaded assets.
+The [collected source notes](research/SOURCE_NOTES.md) verify upstream paths and distinguish the legacy and configurable workflows. The source-collection update itself ran nothing; the install and triangulation were verified afterwards (§2, §6b). The earlier source collection listed acquisition routes. The local Windows update now records the sample and detector weights actually downloaded, with hashes.
 
-The current public quickstart uses `street_dance`; the legacy repo guide uses `zju-ls-feng`. CPU fallback exists in the current HRNet component, but end-to-end CPU feasibility and speed remain untested.
+The current public quickstart uses `street_dance`; the legacy repo guide uses `zju-ls-feng`. Local CPU detection and triangulation are now verified; SMPL fitting and its body overlay remain unverified pending a licensed model.
 
 ## 0. Machine log
 
 | Field | Value |
 |---|---|
-| Machine / server | |
-| OS | |
-| GPU + VRAM | |
-| NVIDIA driver / CUDA | (`nvidia-smi`) |
-| Conda version | |
-| EasyMocap commit | (`git rev-parse HEAD`) |
+| Machine / server | Local laptop (CPU run) |
+| OS | Windows 11 Pro 10.0.26100 |
+| GPU + VRAM | Radeon RX 5500M ~4 GiB; AMD integrated graphics |
+| NVIDIA driver / CUDA | No present NVIDIA adapter; PyTorch 2.0.1+cpu |
+| Conda version | 25.7.0 |
+| EasyMocap commit | `e6006fd3814d5f8ad45a7ce965beb9bcc90767f2` |
 
 ---
 
@@ -34,7 +43,7 @@ The current public quickstart uses `street_dance`; the legacy repo guide uses `z
    - SMPL neutral: https://smplify.is.tue.mpg.de
    - (Optional) SMPL-X: https://smpl-x.is.tue.mpg.de, and MANO/SMPL+H: https://mano.is.tue.mpg.de
    - Follow the terms of the exact model download and the lab's permitted use. **Don't commit `.pkl` model files to this repo.**
-3. **Publicly linked sample data** (download availability and terms not verified): `zju-ls-feng`, 23 cameras × 800 frames, [Dropbox](https://www.dropbox.com/s/24mb7r921b1g9a7/zju-ls-feng.zip?dl=0).
+3. **Sample downloaded locally 2026-09-29** (see Windows guide for hash and source): `zju-ls-feng`, 23 cameras × 800 frames, [Dropbox](https://www.dropbox.com/s/24mb7r921b1g9a7/zju-ls-feng.zip?dl=0).
 
 ---
 

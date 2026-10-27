@@ -6,6 +6,9 @@ Goal for the semester: **synchronized multi-view GoPro video → calibrated, rep
 |---|---|
 | `README.md` (this) | Plan, timeline, interfaces with other teams, risks |
 | [`SETUP.md`](SETUP.md) | Step-by-step EasyMocap setup + run guide (fill in "verified" notes as you go) |
+| [`SETUP_WINDOWS.md`](SETUP_WINDOWS.md) | Local CPU installation and real-video commands |
+| [`LOCAL_RUN_STATUS.md`](LOCAL_RUN_STATUS.md) | Actual local results and remaining blockers |
+| [`CODE_WALKTHROUGH.md`](CODE_WALKTHROUGH.md) | Source-level explanation of the configured pipeline |
 | [`READING.md`](READING.md) | Reading list: ZJU core works + Prof. Cao's extra directions, with what to pull from each |
 | [`tools/`](tools/) | Helper scripts: ZJU-MoCap converter, view/sync variants, 3D keypoint comparison, synthetic rig simulator (`synth_rig.py`, `rig_sweep.sh`) |
 | [`results/`](results/) | Experiment write-ups (first one: [synthetic rig sweep](results/2026-09-29-synthetic-rig-sweep.md)) |
@@ -47,22 +50,23 @@ You are the **consumer of everyone else's output**. So besides running EasyMocap
 **Status on Sep 29:**
 - EasyMocap installs and its triangulation runs on CPU. This was verified in a cloud container with three install fixes, now in `SETUP.md` §2.
 - A synthetic layout/sync comparison already exists ([results](results/2026-09-29-synthetic-rig-sweep.md)). Proposed sync target: ≤ 1 frame at 60 fps.
-- Still open: your machine, SMPL models, detector weights, sample data, and anything on real video.
+- Local laptop checked and configured: Windows CPU environment, official sample and detector weights acquired, fresh real-video detection and triangulation verified. See [local receipt](LOCAL_RUN_STATUS.md).
+- Still open: licensed SMPL model and body-overlay run, full ZJU-MoCap access, personal reading, and independent reproduction by Seishin.
 
 Meetings are Tuesdays at 12:30. Each week ends with something to show at the next meeting.
 
 ### Week 1: Sep 29 – Oct 4: Access, environment, reading
 - [ ] **Today:** sign the ZJU-MoCap agreement and email it (see `SETUP.md` §1). Approval can take days to weeks, so start it first.
 - [ ] Register on the SMPL / SMPLify (neutral model) / SMPL-X sites and download the models.
-- [ ] **Check your machine first:** run `nvidia-smi`. Without an NVIDIA GPU (e.g. an AMD Radeon laptop), ask Prof. Cao for a lab Linux GPU server. Record the GPU, CUDA driver and OS in `SETUP.md` §0.
-- [ ] Install EasyMocap with the verified steps (`SETUP.md` §2, including the 3 fixes). Then run the synthetic smoke test (`SETUP.md` §6b) to confirm your install matches the reference numbers (baseline ≈ 8.9 mm).
+- [x] **Check the local machine:** Windows/AMD hardware recorded in `SETUP.md` §0. A CPU run is configured; a lab GPU remains useful for larger experiments.
+- [x] Install locally and verify fresh detection/triangulation on real video. See `SETUP_WINDOWS.md`; the earlier cloud synthetic test remains a separate reference.
 - [ ] Read EasyMocap docs + **Neural Body** (introduces ZJU-MoCap) + **MVPose** (the multi-view matching/triangulation idea).
 - **Show on Oct 6:** env installed on your machine, the synthetic sweep table, and a paragraph on how the pipeline works.
 
 ### Week 2: Oct 5 – 11: Run the demo, understand the code
-- [ ] Download a sample: `zju-ls-feng` (legacy guide, 23 cameras, 800 frames) or `street_dance` (current public quickstart). See `research/DOWNLOADS.md`.
+- [x] Download a sample: `zju-ls-feng` (legacy guide, 23 cameras, 800 frames) or `street_dance` (current public quickstart). See `research/DOWNLOADS.md`.
 - [ ] Run the v0.1 pipeline (`apps/demo/mv1p.py`) → SMPL. Then run the v0.2 pipeline (`emc ... detect_triangulate_fitSMPL.yml`).
-- [ ] Trace the code: `extract_video.py` → 2D keypoints (`annots/`) → triangulation → SMPL fitting. Write down which function does each step (for the team doc).
+- [x] Write a source trace of video frames → detection → triangulation → SMPL fitting: `CODE_WALKTHROUGH.md`. Tan still needs to study it and explain the pipeline personally.
 - [ ] Start the **camera-count experiment** on the sample data (`tools/make_variant.py` + `tools/compare_keypoints3d.py`, see `SETUP.md` §6):
   - reference = all 23 views (a reference estimate, not true ground truth; the synthetic sweep covers the true-GT side)
   - variants = several 5-view subsets (spread evenly around vs. front half vs. clustered)
