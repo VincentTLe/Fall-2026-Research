@@ -8,6 +8,7 @@ Goal for the semester: **synchronized multi-view GoPro video → calibrated, rep
 | [`SETUP.md`](SETUP.md) | Step-by-step EasyMocap setup + run guide (fill in "verified" notes as you go) |
 | [`SETUP_WINDOWS.md`](SETUP_WINDOWS.md) | Local CPU installation and real-video commands |
 | [`LOCAL_RUN_STATUS.md`](LOCAL_RUN_STATUS.md) | Actual local results and remaining blockers |
+| [`EXPLORATION.md`](EXPLORATION.md) | Oct–Nov plan: public datasets, one camera vs. many, Gaussian Splatting, ready-to-paste GPU server prompts |
 | [`CODE_WALKTHROUGH.md`](CODE_WALKTHROUGH.md) | Source-level explanation of the configured pipeline |
 | [`READING.md`](READING.md) | Reading list: ZJU core works + Prof. Cao's extra directions, with what to pull from each |
 | [`tools/`](tools/) | Helper scripts: ZJU-MoCap converter, view/sync variants, 3D keypoint comparison, synthetic rig simulator (`synth_rig.py`, `rig_sweep.sh`) |
