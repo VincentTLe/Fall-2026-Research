@@ -44,7 +44,7 @@ $env:PIP_CACHE_DIR = Join-Path $project '.cache\pip'
 & $py -m pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cpu
 & $py -m pip install -r "$project\reconstruction\requirements-windows-cpu.txt"
 & $py -m pip install --no-build-isolation chumpy==0.70
-git clone https://github.com/zju3dv/EasyMocap.git "$project\external\EasyMocap"
+git clone -c core.autocrlf=false https://github.com/zju3dv/EasyMocap.git "$project\external\EasyMocap"
 git -C "$project\external\EasyMocap" checkout e6006fd3814d5f8ad45a7ce965beb9bcc90767f2
 git clone --branch v7.0 --depth 1 https://github.com/ultralytics/yolov5.git "$project\external\yolov5"
 & $py -m pip install --no-deps --no-build-isolation -e "$project\external\EasyMocap"
@@ -143,6 +143,20 @@ The public EasyMocap demonstration archive is separate from obtaining the comple
 ZJU-MoCap release through its agreement process. Keep those tasks distinct.
 
 ## Problems found locally
+
+- **Clone EasyMocap with `-c core.autocrlf=false` on Windows.** Git for Windows
+  defaults to `core.autocrlf=true`, which rewrote the text-format pickle
+  `easymocap/multistage/gmm_08.pkl` with CRLF line endings. SMPL fitting then
+  fails in `refine_poses` with `UnpicklingError: the STRING opcode argument must
+  be quoted` (2026-10-27). Clone with
+  `git clone -c core.autocrlf=false https://github.com/zju3dv/EasyMocap.git ...`,
+  or repair an existing clone by writing the file back from the git blob:
+
+  ```powershell
+  $e = "$project\external\EasyMocap"
+  & $py -I -c "import subprocess,sys,os; e,p=sys.argv[1],sys.argv[2]; open(os.path.join(e,p),'wb').write(subprocess.check_output(['git','-C',e,'cat-file','blob','HEAD:'+p]))" $e 'easymocap/multistage/gmm_08.pkl'
+  git -C $e ls-files --eol -- easymocap/multistage/gmm_08.pkl   # expect w/lf
+  ```
 
 - The first diagnostic call to OpenCV rejected a non-contiguous XYZ slice. The
   runner now passes `np.ascontiguousarray`; the real-video smoke test was rerun.

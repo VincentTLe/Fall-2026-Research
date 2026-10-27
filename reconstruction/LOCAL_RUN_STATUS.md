@@ -1,8 +1,42 @@
-# Local EasyMocap result — 2026-09-29
+# Local EasyMocap result — 2026-09-29, SMPL added 2026-10-27
 
-**Fresh real-video detection and triangulation are verified on this Windows
-laptop. SMPL fitting and the body-mesh overlay remain blocked by the missing
-licensed neutral model. The full assignment is not complete.**
+**Fresh real-video detection, triangulation and SMPL fitting with a body-mesh
+overlay are verified on this Windows laptop, on a 4-camera, 50-frame subset of
+`zju-ls-feng`. The full 23-camera, 800-frame run is not done yet.**
+
+## SMPL fit — 2026-10-27
+
+- Model: licensed SMPL v1.1.0 for Python, neutral
+  (`basicmodel_neutral_lbs_10_207_0_v1.1.0.pkl`), loaded from outside the repo.
+  Archive SHA-256 `87C9E6CB1DDDAD79CF3B8B01760E240A9CD0C29D7FF14EDA30FB07E3BD430C27`.
+- Same input, cameras and frames as the run below; detections were reused.
+- Output: 50 `smpl/*.json` files (keys `Rh`, `Th`, `poses` (69), `shapes` (10)),
+  50 `vis_render/*.jpg` frames on camera 1, and `vis_render.mp4`, which decodes
+  all 50 frames at 12.5 fps.
+- Final 3D keypoint loss in `refine_poses`: 1.0289 (EasyMocap's weighted loss
+  value, not an error in millimetres). Total wall time 1 min 59 s on CPU,
+  including reused stages.
+- Timing caveat: this run reused the cached detections, so the new
+  `validation.json` reports `seconds_per_frame_mean` 0.22 s. That is not a
+  detection speed. The Sep 29 receipt (7.28 s per time step, fresh detection) is
+  kept in `local-runs/archive-2026-09-29-receipts/`.
+- Visual check of frames 0 and 25: the mesh follows the T-pose and the raised
+  right arm and sits on the feet. Clothing extends beyond the mesh, as expected
+  for a body model without clothes.
+- `validation.json` reports `smpl_completed: true`, `videos_encoded: true`.
+  The detection/triangulation numbers are unchanged from Sep 29.
+- Log: `local-runs/logs/smpl-fit-2026-10-27-run2.log`. Receipts from Sep 29 were
+  archived in `local-runs/archive-2026-09-29-receipts/` before this run.
+
+The first attempt failed in `refine_poses` while loading EasyMocap's pose prior
+`easymocap/multistage/gmm_08.pkl` (`UnpicklingError: the STRING opcode argument
+must be quoted`). Git for Windows (`core.autocrlf=true`) had converted that
+text-format pickle to CRLF line endings: 55 extra bytes against the repository
+blob (839,182 vs 839,127). Rewriting the file from the git blob fixed it; see
+`SETUP_WINDOWS.md`, "Problems found locally".
+
+Not verified: accuracy against ground truth (this sample has none), other
+cameras' overlays, and any frame beyond the 50 listed.
 
 ## Actual run
 
@@ -45,18 +79,15 @@ it was fixed and the real-data smoke test rerun successfully.
 | Local hardware and install | Verified Windows/AMD CPU environment |
 | Sample + detector weights | Acquired from official sources, hashes recorded |
 | Real-video 2D detection + 3D triangulation | Verified short subset, videos saved |
-| SMPL fit + body-overlay video | **Pending licensed neutral SMPL model** |
+| SMPL fit + body-overlay video | Verified on the 50-frame subset (2026-10-27) |
 | Full ZJU-MoCap release sequence | Access/agreement and run still pending |
 | Paper reading | Code walkthrough and notes supplied; personal study still pending |
 | Independent reproduction | Guide prepared; Seishin has not run it yet |
 
 ## Exact next step
 
-Obtain the neutral model through https://smpl.is.tue.mpg.de/ and provide its local
-path (it may be named `SMPL_NEUTRAL.pkl` or
-`basicmodel_neutral_lbs_10_207_0_v1.1.0.pkl`). Then use the `--fit --smpl` command
-in [SETUP_WINDOWS.md](SETUP_WINDOWS.md). It reuses the detection cache, optimizes
-the body and renders camera 1. The SMPL stage is prepared but unverified.
+Run all 23 cameras and all 800 frames on the GPU server, as track T1 in
+[EXPLORATION.md](EXPLORATION.md).
 
 See [CODE_WALKTHROUGH.md](CODE_WALKTHROUGH.md) for the source trace and
 [READING_SESSION_NOTES.md](READING_SESSION_NOTES.md) for reading evidence limits.
