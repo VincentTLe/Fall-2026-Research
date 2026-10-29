@@ -210,6 +210,8 @@ def _selftest():
     model = {"F": (mu, tau)}
     rep = {"F": np.array([0.5, 1.5, 3.0, -1.0])}   # errors 0, .5, 1 (capped), 0
     assert abs(rep_error(rep, model, ["F"])["F"] - 0.375) < 1e-12
+    m2 = {"F": (np.zeros(3), np.full(3, 2.0))}                         # tau = 2: errors 0, (3-2)/2, min(1, 4/2)
+    assert abs(rep_error({"F": np.array([1.0, 3.0, 6.0])}, m2, ["F"])["F"] - 0.5) < 1e-12
     # warp: a rep identical to ref maps onto itself
     w = warp_to_ref(a, a, {"F": a * 2})
     assert np.allclose(w["F"], a * 2)
@@ -228,6 +230,46 @@ def _selftest():
     pg = sequence_psi(ok, [(good, ["F"])], "M", cfg, np.random.default_rng(1))
     assert pb > 0.8, pb
     assert abs(pg) < 0.3, pg
+    # 6. tolerance: tau = t_{0.975,n-1} * s / sqrt(n) per frame, floored at Q1 of tau over frames
+    X = np.array([[0.0, 0, 0, 0], [1, 2, 4, 8], [2, 4, 8, 16]])        # 3 reps x 4 frames
+    m = build_model([{"F": x} for x in X], Config(floor="none"))["F"]
+    s_ = np.std(X, axis=0, ddof=1); want = stats.t.ppf(0.975, 2) * s_ / np.sqrt(3)
+    assert np.allclose(m[0], X.mean(0)) and np.allclose(m[1], want), (m, want)
+    mf = build_model([{"F": x} for x in X], Config())["F"][1]
+    assert np.allclose(mf, np.maximum(want, np.quantile(want, 0.25))) and mf[0] > want[0]
+    # 7. warp: rep = reference stretched x2; its time index maps to ~2i (+0.5 mean of the matched pair)
+    a2 = np.sin(np.linspace(0, np.pi / 2, 40)); b2 = np.sin(np.linspace(0, np.pi / 2, 80))
+    w2 = warp_to_ref(a2, b2, {"t": np.arange(80.0)})["t"]
+    assert np.median(np.abs(w2 - (2 * np.arange(40) + 0.5))) <= 1.0, w2[:6]
+    # 8. features on a hand-built pose (MediaPipe world axes: x right, y down, z away from camera).
+    #    Hips on the x-axis and centred, so normalise_3d is the identity. Expected angles worked out by hand.
+    J = np.zeros((1, 33, 3))
+    pose = {L_HIP: (-.2, 0, 0), R_HIP: (.2, 0, 0), L_SH: (-.2, -.5, 0), R_SH: (.2, -.5, 0), NOSE: (0, -.7, 0),
+            R_EL: (.5, -.5, -.3), R_WR: (.5, -.8, -.6), L_EL: (-.2, -.2, 0), L_WR: (-.2, .1, 0),
+            L_KN: (-.2, .4, 0), L_AN: (-.2, .8, 0), L_HEEL: (-.2, .85, .05), L_TOE: (-.2, .85, -.15),
+            R_KN: (.2, .4, -.2), R_AN: (.2, .8, 0), R_HEEL: (.2, .85, .05), R_TOE: (.3, .85, -.15)}
+    for i, v in pose.items():
+        J[0, i] = v
+    exp3 = {"F1": 90 + np.degrees(np.arctan(.3 / .6)),   # yz: wrist (z -.6, y -.3) vs hip straight down
+            "F2": 90.0, "F3": 0.0,                       # shoulder line vs shoulder->hip; head straight up
+            "F4": 90.0,                                  # xy: elbow->shoulder (-.3, 0), elbow->wrist (0, -.3)
+            "F5": 135.0,                                 # xy: shoulder->wrist (.3, -.3) vs shoulder->L shoulder
+            "F6": 180.0, "F7": 0.0,
+            "F8": 135.0,                                 # yz: elbow->shoulder (z .3, 0), elbow->wrist (z -.3, y -.3)
+            "F9": 180.0, "F10": 180 - np.degrees(np.arctan(.1 / .45)),
+            "F11": np.degrees(np.arctan(.15 / .45)), "F12": np.degrees(np.arctan(.05 / .45)),
+            "F15": 0.5 * (180.0 + np.degrees(np.arccos(-.6)))}   # right knee: (z .2,y -.4).(z .2,y .4)/.2 = -.6
+    F3 = features(J, "3d", 1, Config())
+    for k, v in exp3.items():
+        assert abs(F3[k][0] - v) < 1e-6, ("3d", k, F3[k][0], v)
+    Ff = features(J, "3d", 1, Config(plane3d=False))
+    assert abs(Ff["F4"][0] - 120.0) < 1e-6, Ff["F4"]    # full 3D elbow angle: cos = -.09 / .18
+    F2d = features(J, "2d", 1, Config(aspect=(1.0, 1.0)))
+    for k in ("F2", "F4", "F5", "F9", "F10"):            # these are frontal anyway: same in the image plane
+        assert abs(F2d[k][0] - exp3[k]) < 1e-6, ("2d", k, F2d[k][0])
+    assert abs(F2d["F8"][0] - 90.0) < 1e-6               # 2D has one plane: F8 equals F4
+    F2a = features(J, "2d", 1, Config(aspect=(2.0, 1.0)))
+    assert abs(F2a["F5"][0] - (180 - np.degrees(np.arctan(.3 / .6)))) < 1e-6   # x doubled: (.6, -.3) vs (-.8, 0)
     print(f"selftest ok  psi(bad)={pb:.3f} psi(clean)={pg:.3f}")
 
 

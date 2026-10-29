@@ -39,6 +39,7 @@ def parse_cfg(items):
             kw[k] = v.lower() in ("1", "true", "yes")
         else:
             kw[k] = v
+    kw.setdefault("aspect", (1080.0, 1920.0))   # REHAB26 videos are 1080x1920; normalised 2D would skew angles
     return rp.Config(**kw)
 
 
