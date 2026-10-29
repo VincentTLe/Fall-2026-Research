@@ -63,6 +63,8 @@ def parse_args():
     p.add_argument('--keypoints2d', choices=['hrnet', 'vitpose'], default='hrnet',
                    help='hrnet: COCO-17, no feet; vitpose: ViTPose+-B COCO-17 + 6 COCO-WholeBody foot points')
     p.add_argument('--vitpose-ckpt', type=Path, default=HOME / 'models/detectors/vitpose+_base.pth')
+    p.add_argument('--triangulate-mode', choices=['iterative', 'naive'], default='iterative',
+                   help='iterative (upstream default) needs >= 3 views per joint; use naive for 2 cameras')
     p.add_argument('--ffmpeg', default='ffmpeg')
     p.add_argument('--label', default='', help='free text stored in validation.json')
     args = p.parse_args()
@@ -199,6 +201,8 @@ def main():
             steps.keypoints2d.args = CfgNode(dict(ckpt=str(kp_ckpt)))
         else:
             steps.keypoints2d.args.ckpt = str(kp_ckpt)
+    # iterative_triangulate defaults to min_view=3, so with two cameras every joint is zero.
+    steps.triangulate.args.mode = args.triangulate_mode
     # Show the selected cameras without the upstream center crop.
     steps.visualize.args.mode = 'none'
     if args.no_vis:
