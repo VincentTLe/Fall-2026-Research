@@ -18,7 +18,7 @@ Every result below comes from a public dataset that has ground truth, so each nu
 | **Q2. One camera or two, for rehab exercises?** | <ul><li>Two cameras: **43 mm** with no alignment at all.</li><li>One camera (GVHMR, a recent method): 47–70 mm even after the best possible alignment, and 160–200 mm off in where the body is in the room.</li><li>Main one-camera failure: in side view, the arm behind the body is hidden and gets guessed wrong.</li></ul> | [T2](reconstruction/results/2026-10-27-t2-monocular.md), [T2b](reconstruction/results/2026-10-29-t2b-calibration-benchmark.md), REHAB24-6 with motion capture |
 | **Q2. How does a modern one-camera method compare with published results?** | <ul><li>On the REHAB24-6 authors' own benchmark (all 65 recordings), GVHMR's error is **6.0 cm**.</li><li>Their best method (MediaPipe) is at 8.4 cm.</li><li>Even a method given perfect 2D input is at 7.7 cm.</li></ul> | [T2b](reconstruction/results/2026-10-29-t2b-calibration-benchmark.md) |
 | **Q2. Does better 3D help tell correct from incorrect repetitions?** | <ul><li>The same group's 2026 paper found that 2D beats 3D, using MediaPipe.</li><li>With GVHMR, 3D beats 2D on both arm exercises: separability Ψ +0.11 and +0.09, with 95% intervals above 0.</li><li>For the squat, the answer depends on how the angles are measured, so it is not settled.</li></ul> | [T5](reconstruction/results/2026-10-28-t5-rehab-assessment.md), REHAB26-ViewAngles |
-| **Q3. Can we make a realistic avatar from one video?** | <ul><li>GaussianAvatar reproduced: 28.80 dB PSNR, against 28.83 for the authors' checkpoint. It renders at 38 fps.</li><li>On a phone video, most of the error comes from the body-pose estimates: 23.9 dB with the given poses, 29.4 dB once the test poses are corrected.</li><li>Avatar from one REHAB24-6 camera: trained; write-up in progress.</li></ul> | [T4](reconstruction/results/2026-10-27-t4-gaussian.md), People-Snapshot, NeuMan |
+| **Q3. Can we make a realistic avatar from one video?** | <ul><li>GaussianAvatar reproduced: 28.80 dB PSNR, against 28.83 for the authors' checkpoint. It renders at 38 fps.</li><li>On a phone video, most of the error comes from the body-pose estimates: 23.9 dB with the given poses, 29.4 dB once the test poses are corrected.</li><li>On our kind of data (one REHAB24-6 camera, 354 frames, 2 h training), the avatar looks right on seen views and through a 360° turn. On 3 held-out repetitions it scores only 18.5 dB with GVHMR's poses, against 28.1 dB once those poses are corrected. So the next thing to fix is pose accuracy, not the avatar.</li></ul> | [T4](reconstruction/results/2026-10-27-t4-gaussian.md), People-Snapshot, NeuMan, REHAB24-6 |
 | **Q4. Can internet videos be used?** | Not started; this is a stretch goal. | [plan](reconstruction/EXPLORATION.md) |
 
 "Joint error" is the mean distance between estimated and true joint positions. Ψ is the paper's score for how well correct and incorrect repetitions are told apart: about 0.1 is chance, and higher is better.
@@ -57,10 +57,10 @@ Our results add:
 
 ### In progress and next
 
-- **Avatar from one REHAB24-6 camera video:** training finished; the result is being written up.
 - **Nov 3 meeting:** summary and slides.
 - **Next experiments:**
   - fit a body model to the two-camera result and score it on the same benchmark;
+  - give the avatar better poses (smooth GVHMR over time, or use both cameras to fix depth) and re-score it;
   - run GVHMR from two cameras for exercise assessment;
   - ask the REHAB authors for the evaluation details their papers leave out.
 
