@@ -57,7 +57,7 @@ Our results add:
 
 ### In progress and next
 
-- **Nov 3 meeting:** summary and slides.
+- **Nov 3 meeting:** [summary of all results, with gaps and a slide outline](reconstruction/results/2026-10-29-summary.md).
 - **Next experiments:**
   - fit a body model to the two-camera result and score it on the same benchmark;
   - give the avatar better poses (smooth GVHMR over time, or use both cameras to fix depth) and re-score it;

@@ -3,7 +3,7 @@
 ## 1. Result
 
 GVHMR (one camera, static-camera mode) on 399 clean repetitions of 12 REHAB24-6 recordings (all six exercises, lights
-on and off) gives **PA-MPJPE 46.3 mm from the horizontal camera 17 and 69.8 mm from the vertical camera 18** on 12 limb
+on and off) gives **PA-MPJPE 46.3 mm from the horizontal camera 17 and 69.9 mm from the vertical camera 18** on 12 limb
 joints. With the true camera rotation and a mid-hip root it is 99.2 / 126.9 mm, partly because Motive and SMPL place the
 hips ~9–13 cm apart. Wrists are the worst joints (61–132 mm PA), and a far-side arm hidden in profile view is the main
 failure. Two cameras do much better on the same frames: triangulating GVHMR's own ViTPose 2D through the recovered

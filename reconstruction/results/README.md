@@ -20,6 +20,7 @@ Section 1 is enough for a quick read. The overview and figures are in the [top-l
 | 2026-10-27 | [T4 Gaussian avatars](2026-10-27-t4-gaussian.md) | Q3 | GaussianAvatar reproduced (28.80 vs. the authors' 28.83 dB) and renders at 38 fps. On a phone video and on one REHAB24-6 camera (18.5 dB raw poses vs. 28.1 dB corrected), pose error limits quality |
 | 2026-10-28 | [T5 exercise assessment](2026-10-28-t5-rehab-assessment.md) | Q2, assessment | REHAB26: GVHMR separates correct from incorrect arm exercises better than MediaPipe 2D (+0.11, +0.09 Ψ). The squat is not settled |
 | 2026-10-29 | [T2b cameras and benchmark](2026-10-29-t2b-calibration-benchmark.md) | Q2, benchmark | GVHMR has 6.0 cm error on the REHAB24-6 benchmark, against 8.4 cm for the paper's best. The authors' newer cameras fit the video better: two cameras reach 42.9 mm |
+| 2026-10-29 | [Summary for the Nov 3 meeting](2026-10-29-summary.md) | All | What Q1–Q4 show and don't show, where files disagree, the smallest next experiment for each gap, a 7-slide outline |
 | — | [DATA_LOG.md](DATA_LOG.md) | Provenance | Every dataset and model downloaded, with license and checksum |
 | — | [figures/](figures/) | Overview | Summary figures, drawn by [`../tools/make_summary_figures.py`](../tools/make_summary_figures.py) |
 
