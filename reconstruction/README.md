@@ -12,7 +12,7 @@ Goal for the semester: **synchronized multi-view GoPro video → calibrated, rep
 | [`CODE_WALKTHROUGH.md`](CODE_WALKTHROUGH.md) | Source-level explanation of the configured pipeline |
 | [`READING.md`](READING.md) | Reading list: ZJU core works + Prof. Cao's extra directions, with what to pull from each |
 | [`tools/`](tools/) | Helper scripts: ZJU-MoCap converter, view/sync variants, 3D keypoint comparison, synthetic rig simulator (`synth_rig.py`, `rig_sweep.sh`) |
-| [`results/`](results/) | Experiment write-ups (first one: [synthetic rig sweep](results/2026-09-29-synthetic-rig-sweep.md)) |
+| [`results/`](results/) | Experiment write-ups: start with the [results index](results/README.md); overview and figures in the [top-level README](../README.md) |
 | [`research/`](research/) | Verified source notes for all supplied links, downloads checklist, citations |
 
 ---
