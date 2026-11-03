@@ -64,6 +64,23 @@ So where the right person is tracked and the legs are visible, the rule counted 
 
 Applied after the fact to round 1, the rule gives 14 for mixkit_23913, which matches the video. It gives 2 for mixkit_45960, against 3 seen, one of which is cut off at the end. Round 1 was used to design the rule, so these two are not a test.
 
+## 1c. Choosing the person: a fix for the coach failures (2026-11-03, 02:10–02:20)
+
+**The rule.** GVHMR's tracker keeps the track with the largest summed box area, which in two clips was the coach. `t3_gvhmr_pick.py` takes, among tracks covering at least half of the frames, the one whose box height varies most relative to its median. Squats and lunges move the body up and down; a coach standing beside does not.
+
+It was written from the two failure cases, so this is a check that the fix works, not a held-out test. Nine clips were rerun: the five with two people, plus four single-person controls.
+
+| Clip | Default track → new track | Result |
+|---|---|---|
+| mixkit_23914, squat with a coach | coach → **the woman squatting** | 4 squats counted, as seen in the video. Projection error 5.55% → 2.14% |
+| mixkit_24305, squat with a coach | coach → **the woman squatting** | 5 counted, as seen (a 6th is cut off at the end). Projection error 5.55% → 3.05%, which now passes the check |
+| mixkit_49038, mother and daughter | mother → daughter | 3 counted. Both people are squatting in step, so either choice is valid |
+| mixkit_24304, lunge with a coach | unchanged | 3, as before |
+| mixkit_44438, two people | unchanged | as before |
+| 4 controls (52106, 36062, 52117, pexels_7426039) | unchanged | identical metrics |
+
+**Limits.** A coach who moves more than the person exercising would still win. A click on the right person in the first frame would be the robust version.
+
 ## 2. Setup
 
 | Field | Value |
@@ -73,7 +90,7 @@ Applied after the fact to round 1, the rule gives 14 for mixkit_23913, which mat
 | GVHMR | `ee960bb`, the unofficial mirror weights (see `DATA_LOG.md`), static-camera mode, GVHMR's default focal length. `t3_gvhmr_lowmem.py` lowers GVHMR's preprocessing batch from 16 to 4 at runtime, so it is the same computation in smaller batches. The checkout was not changed. About 3.3 GB measured during the 2D-joint stage of clip 1, against about 4.7 GB at batch 16 (P2b) |
 | Clips | 15 stock clips, 6–23 s long, 720p to 4K, 24–30 fps (`t3_clips.txt`). Mixkit Stock Video Free License and Pexels License: free use, no redistribution as stock. Not in git. Each was cut to at most 30 s, scaled to at most 1080 px high and resampled to 30 fps |
 | Reference | REHAB24-6 Ex6 squats: P2's GVHMR true-focal chunks for PM_118 and PM_022, both cameras (12 segments), with the motion capture at 30 fps (video frame = mocap frame) |
-| Tools | `reconstruction/tools/t3_run.sh`, `t3_gvhmr_lowmem.py`, `t3_internet_metrics.py` (with `reps_depth` from round 2), `t3_peak_sheet.py`, `t3_clips.txt` (both rounds) |
+| Tools | `reconstruction/tools/t3_run.sh`, `t3_gvhmr_lowmem.py`, `t3_internet_metrics.py` (with `reps_depth` from round 2), `t3_peak_sheet.py`, `t3_clips.txt` (both rounds); for §1c `t3_gvhmr_pick.py` and `t3_pick_run.sh` |
 
 ## 3. Commands
 
