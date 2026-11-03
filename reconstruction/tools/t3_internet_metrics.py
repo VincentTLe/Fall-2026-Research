@@ -8,6 +8,9 @@ Per sequence (SMPL-24 joints from gvhmr_export_joints.py, camera frame, 30 fps):
   jitter     mean acceleration of root-relative limb joints, mm/frame^2 (smoothness)
   knee       5th/95th percentile of the more-bent knee's flexion (180 deg = straight leg)
   reps       peaks of that flexion (Savitzky-Golay 9 frames; prominence 25 deg; at least 0.6 s apart)
+  reps_depth the same peaks, kept only if at least 0.75 x the clip's 95th-percentile flexion. Rule fixed
+             on 2026-11-02 after round 1 (two failure cases: small dips before a set, steps between lunges),
+             before any round-2 clip was downloaded; round 2 is its test.
 REHAB24-6 rows add the same numbers from motion capture, the knee-angle error of GVHMR against it, and
 the annotated repetition count, so the counter and the thresholds can be judged where the truth is known.
 
@@ -40,9 +43,11 @@ def knee_flexion(j, legs):
     return np.stack(out, 1)
 
 
-def reps(flex):
+def reps(flex, depth=False):
     f = savgol_filter(flex, 9, 2) if len(flex) >= 9 else flex
     peaks, _ = find_peaks(f, prominence=25, distance=int(0.6 * FPS))
+    if depth:
+        peaks = peaks[f[peaks] >= 0.75 * np.percentile(f, 95)]
     return int(len(peaks))
 
 
@@ -68,6 +73,7 @@ def gvhmr_metrics(z):
         "jitter_mm": round(jitter(inc[:, SMPL], [6, 7]), 2),
         "knee_flex_p5_p95": [round(float(np.percentile(flex, q)), 1) for q in (5, 95)],
         "reps": reps(flex),
+        "reps_depth": reps(flex, depth=True),
         "_flex": flex,
         "_inc": inc,
     }
@@ -110,6 +116,7 @@ def rehab(args):
             "mocap_knee_flex_p5_p95": [round(float(np.percentile(mflex, q)), 1) for q in (5, 95)],
             "knee_err_deg": round(float(np.abs(m["_flex"][:n] - mflex).mean()), 1),
             "mocap_reps": reps(mflex),
+            "mocap_reps_depth": reps(mflex, depth=True),
             "annotated_reps": ann,
         })
     return rows
@@ -134,9 +141,9 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     reh, net = rehab(args), internet(args)
     json.dump({"rehab": reh, "internet": net}, open(out / "metrics.json", "w"), indent=1)
-    cols = ["name", "kind", "frames", "coverage_pct", "reproj_pct_box", "jitter_mm", "knee_flex_p5_p95", "reps"]
+    cols = ["name", "kind", "frames", "coverage_pct", "reproj_pct_box", "jitter_mm", "knee_flex_p5_p95", "reps", "reps_depth"]
     md = ["## REHAB24-6 squats (ground truth available)", "",
-          table(reh, cols + ["mocap_jitter_mm", "mocap_knee_flex_p5_p95", "knee_err_deg", "mocap_reps", "annotated_reps"]),
+          table(reh, cols + ["mocap_jitter_mm", "mocap_knee_flex_p5_p95", "knee_err_deg", "mocap_reps", "mocap_reps_depth", "annotated_reps"]),
           "", "## Internet clips (no ground truth)", "", table(net, cols + ["status"]), ""]
     (out / "metrics.md").write_text("\n".join(md))
     print("\n".join(md))
