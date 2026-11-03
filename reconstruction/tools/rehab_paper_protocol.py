@@ -91,6 +91,11 @@ def evaluate(a):
             cal = np.load(Path(a.calib_old) / f"calib_c{cam}.npz")
             Rw, C = cal["R"], cal["C"]
             G, _ = load_chunks(a.chunks, vid, cam, len(X))
+            if a.smpl:   # two-camera SMPL fit (world frame) in place of GVHMR: camera frame and 2D via the old camera
+                W = np.load(Path(a.smpl) / vid / "smpl_joints.npz")["joints"]
+                G = {"incam": (W - C) @ Rw.T, "vitpose": np.full((len(X), 17, 3), np.nan)}
+                h = W @ cal["P"][:, :3].T + cal["P"][:, 3]
+                G["vitpose"][:, ic, :2] = (h[..., :2] / h[..., 2:])[:, ia]
             for r in s.itertuples():
                 f = np.arange(r.first_frame, min(r.last_frame + 1, len(X)))
                 has = ~np.isnan(G["incam"][f, 0, 0])
@@ -200,6 +205,7 @@ if __name__ == "__main__":
     ap.add_argument("--out")
     ap.add_argument("--summary")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--smpl", help="score <smpl>/<rec>/smpl_joints.npz (EasyMocap two-camera SMPL fit) instead of GVHMR")
     a = ap.parse_args()
     if a.selftest:
         selftest()

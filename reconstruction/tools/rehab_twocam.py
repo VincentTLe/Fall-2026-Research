@@ -64,7 +64,7 @@ def scores(t, g, hp, hg, prefix):
             f"{prefix}_cent": float(np.linalg.norm((t - t.mean(1, keepdims=True)) - (g - g.mean(1, keepdims=True)), axis=2).mean() * mm)}
 
 
-def evaluate_rec(data, chunk_root, calib_dir, vid, emc_root=None, emc_data=None, min_conf=0.3):
+def evaluate_rec(data, chunk_root, calib_dir, vid, emc_root=None, emc_data=None, min_conf=0.3, smpl_root=None):
     import pandas as pd
     seg = pd.read_csv(Path(data) / "Segmentation.csv", sep=";")
     seg = seg[seg.video_id == vid]
@@ -88,6 +88,8 @@ def evaluate_rec(data, chunk_root, calib_dir, vid, emc_root=None, emc_data=None,
             k = np.array(json.load(open(fjs))[0]["keypoints3d"])
             if start + int(fjs.stem) < len(gt3):
                 emc[start + int(fjs.stem)] = k
+    # EasyMocap SMPL fit (optional): SMPL-24 joints per video frame (rehab_emc_smpl.py joints).
+    smj = np.load(Path(smpl_root) / vid / "smpl_joints.npz")["joints"] if smpl_root is not None else None
     b25 = [COCO2BODY25[c] for c in coco]
     rows = []
     for _, r in seg.iterrows():
@@ -105,6 +107,8 @@ def evaluate_rec(data, chunk_root, calib_dir, vid, emc_root=None, emc_data=None,
         if emc_root is not None:
             e = emc[f][:, b25]
             ok &= ~np.isnan(e).any(axis=(1, 2)) & (e[..., 3] > 0).all(axis=1)
+        if smj is not None:
+            ok &= ~np.isnan(smj[f]).any(axis=(1, 2))
         if ok.sum() < 10:
             continue
         fo = f[ok]
@@ -122,6 +126,10 @@ def evaluate_rec(data, chunk_root, calib_dir, vid, emc_root=None, emc_data=None,
             e = emc[fo][:, b25, :3]
             row.update(scores(e[:, keep], g, e[:, hips].mean(1, keepdims=True), hg, "emc"))
             row["emc_joint_abs"] = {name_of[rh[k]]: float(np.linalg.norm(e[:, k] - g[:, i], axis=1).mean() * 1000) for i, k in enumerate(keep)}
+        if smj is not None:   # world frame, same joints and hip root as GVHMR
+            sj = smj[fo][:, [smpl_of[rh[k]] for k in keep]]
+            row.update(scores(sj, g, smj[fo][:, [1, 2]].mean(1, keepdims=True), hg, "smpl"))
+            row["smpl_joint_abs"] = {name_of[rh[k]]: float(np.linalg.norm(sj[:, i] - g[:, i], axis=1).mean() * 1000) for i, k in enumerate(keep)}
         # GVHMR single camera, same frames, same 10 joints, rotated into world axes with the
         # recovered camera rotation (abs adds the camera centre: GVHMR's own depth/scale).
         sm = [smpl_of[rh[k]] for k in keep]
@@ -165,12 +173,13 @@ if __name__ == "__main__":
     ap.add_argument("--out")
     ap.add_argument("--emc", help="EasyMocap output root: <emc>/<rec>/triangulated/")
     ap.add_argument("--emc-data", help="EasyMocap data root with <rec>/span.json")
+    ap.add_argument("--smpl", help="EasyMocap SMPL fit root: <smpl>/<rec>/smpl_joints.npz")
     a = ap.parse_args()
     if a.selftest:
         selftest()
     else:
         import pandas as pd
-        rows = [x for v in a.rec for x in evaluate_rec(a.data, a.chunks, a.calib, v, a.emc, a.emc_data)]
+        rows = [x for v in a.rec for x in evaluate_rec(a.data, a.chunks, a.calib, v, a.emc, a.emc_data, smpl_root=a.smpl)]
         json.dump(rows, open(a.out, "w"), indent=1)
         df = pd.DataFrame(rows)
         c = df[df.clean]
