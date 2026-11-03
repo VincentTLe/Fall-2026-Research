@@ -1,0 +1,18 @@
+[Unit]
+Description=T4b: GaussianAvatar runs on REHAB24-6 PM_037 (cam17 two-camera poses, cam18 GVHMR); waits for a GPU with 24 GB free
+StartLimitIntervalSec=1d
+StartLimitBurst=3
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sh -c 'until [ -x /net/home/tle/fall2026/wt-t4b/reconstruction/tools/t4b_avatar_runs.sh ] && [ -x /home/tle/fall2026/envs/gs-avatar/bin/python ]; do sleep 15; done'
+ExecStart=/bin/bash /net/home/tle/fall2026/wt-t4b/reconstruction/tools/t4b_avatar_runs.sh
+StandardOutput=append:/net/home/tle/fall2026/logs/t4b/service.log
+StandardError=append:/net/home/tle/fall2026/logs/t4b/service.log
+TimeoutStartSec=infinity
+Nice=19
+Restart=on-failure
+RestartSec=600
+
+[Install]
+WantedBy=default.target
