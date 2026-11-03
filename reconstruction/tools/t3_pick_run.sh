@@ -13,7 +13,10 @@ watchdog & WD=$!; trap 'kill $WD 2>/dev/null' EXIT
 pick_gpu() { nvidia-smi --query-gpu=index,memory.free,utilization.gpu --format=csv,noheader,nounits |
   awk -F', ' '$2 >= 5000 {print $3, -$2, $1}' | sort -n -k1,1 -k2,2 | head -1 | awk '{print $3}'; }
 log "=== start"
-for n in mixkit_23914 mixkit_24305 mixkit_24304 mixkit_44438 mixkit_49038 mixkit_52106 mixkit_36062 mixkit_52117 pexels_7426039; do
+# default: the 9 clips of 2026-11-03 02:10; with a clip list (src id kind per line), those clips
+if [ $# -ge 1 ]; then NAMES=$(grep -v '^#' "$1" | awk 'NF>=2 {print $1"_"$2}'); else
+  NAMES="mixkit_23914 mixkit_24305 mixkit_24304 mixkit_44438 mixkit_49038 mixkit_52106 mixkit_36062 mixkit_52117 pexels_7426039"; fi
+for n in $NAMES; do
   [ -s "$OUT/$n/joints.npz" ] && { log "skip $n"; continue; }
   while :; do G=$(pick_gpu); [ -n "$G" ] && break; log "wait GPU ($n)"; sleep 120; done
   log "run $n on GPU $G"

@@ -41,3 +41,18 @@ mixkit 36140 other
 mixkit 26274 other
 mixkit 21969 other
 mixkit 42899 other
+# round 3 (2026-11-03, 02:30), clips with a trainer or coach present, listed after the person-choice rule
+# (t3_gvhmr_pick.py, d91893c) was fixed; its held-out test. Each is run with the default and the new choice.
+mixkit 23345 trainer
+mixkit 23641 trainer
+mixkit 23261 trainer
+mixkit 23652 trainer
+mixkit 47023 trainer
+mixkit 47462 trainer
+mixkit 13102 trainer
+mixkit 47417 trainer
+mixkit 32798 trainer
+mixkit 48547 trainer
+mixkit 48546 trainer
+mixkit 48559 trainer
+mixkit 8796 trainer
