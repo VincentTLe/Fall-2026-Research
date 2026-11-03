@@ -20,6 +20,9 @@ Steps
 4. Split by repetition: the last --test-reps repetitions of the video (Segmentation.csv) are test, the rest train.
 5. Write RUN_DIR/{train,test}/{images,masks,smpl_parms.pth,cam_parms.npz} with extrinsic = identity
    (poses are already in the camera frame, as in GaussianAvatar's People-Snapshot and NeuMan data).
+--target-verts NPZ (T4b): skip GVHMR and fit to camera-frame SMPL vertices from twocam_smpl_to_camera.py instead
+(K then comes from --calib only). --k-from-gvhmr (T4b, camera 18): use the K GVHMR ran with instead of --calib's,
+so the poses are projected with the camera they were estimated for.
 --check: project the fitted SMPL mesh with K onto every frame, report silhouette IoU against the masks, and save
 overlays for 6 frames in RUN_DIR/check/. The script also re-checks its own outputs (row counts, K shift).
 """
@@ -33,8 +36,6 @@ import cv2
 import numpy as np
 import smplx
 import torch
-
-from hmr4d.utils.smplx_utils import make_smplx
 
 
 def load_gvhmr(chunks, rows):
@@ -55,6 +56,7 @@ def load_gvhmr(chunks, rows):
 
 
 def smplx_to_smpl_verts(p):
+    from hmr4d.utils.smplx_utils import make_smplx
     bm = make_smplx("supermotion")
     sx2s = torch.load("hmr4d/utils/body_model/smplx2smpl_sparse.pt")
     with torch.no_grad():
@@ -62,12 +64,28 @@ def smplx_to_smpl_verts(p):
         return torch.stack([torch.matmul(sx2s, vi) for vi in v])  # (N, 6890, 3)
 
 
-def fit_smpl(target, p, steps=600):
+def kabsch_orient(smpl, beta, bp, target):
+    """Per-frame root rotation that best maps the SMPL body (given body pose, no root rotation) onto the target
+    vertices (rotation about the centroid; the translation is set afterwards). Used for --target-verts, where the
+    source's root-rotation convention is not SMPL's."""
+    n = len(target)
+    with torch.no_grad():
+        v0 = smpl(betas=beta.expand(n, -1), global_orient=torch.zeros(n, 3), body_pose=bp, transl=torch.zeros(n, 3)).vertices
+        a, b = v0 - v0.mean(1, keepdim=True), target - target.mean(1, keepdim=True)
+        U, _, Vt = torch.linalg.svd(a.transpose(1, 2) @ b)
+        d = torch.sign(torch.det(U @ Vt))
+        D = torch.diag_embed(torch.stack([torch.ones(n), torch.ones(n), d], 1))
+        Rm = (U @ D @ Vt).transpose(1, 2)  # target ~ Rm a
+    return torch.tensor(np.stack([cv2.Rodrigues(r.double().numpy())[0].reshape(3) for r in Rm]), dtype=torch.float32)
+
+
+def fit_smpl(target, p, steps=600, kabsch=False):
     smpl = smplx.SMPL("inputs/checkpoints/body_models/smpl", gender="neutral", batch_size=len(target))
     n = len(target)
     beta = torch.zeros(1, 10, requires_grad=True)
-    go = p["global_orient"].clone().requires_grad_(True)
     bp = torch.cat([p["body_pose"], torch.zeros(n, 6)], 1).clone().requires_grad_(True)
+    go0 = kabsch_orient(smpl, beta, bp, target) if kabsch else p["global_orient"]
+    go = go0.clone().requires_grad_(True)
     with torch.no_grad():
         v0 = smpl(betas=beta.expand(n, -1), global_orient=go, body_pose=bp, transl=torch.zeros(n, 3)).vertices
     tr = (target.mean(1) - v0.mean(1)).clone().requires_grad_(True)
@@ -108,20 +126,33 @@ def main():
     ap.add_argument("--seg", required=True); ap.add_argument("--video", required=True)
     ap.add_argument("--test-reps", type=int, default=3); ap.add_argument("--margin", type=int, default=40)
     ap.add_argument("--steps", type=int, default=600); ap.add_argument("--check", action="store_true")
+    ap.add_argument("--target-verts"); ap.add_argument("--k-from-gvhmr", action="store_true")
+    ap.add_argument("--threads", type=int, default=16)
     a = ap.parse_args()
-    torch.set_num_threads(16)
+    torch.set_num_threads(a.threads)
     run = Path(a.run_dir)
     rows = list(csv.DictReader(open(run / "all/frame_map.csv")))
     names = [f"{int(r['global']):05d}" for r in rows]
     assert names == sorted(names), "frame_map must be in time order"
 
-    p, K_gvhmr = load_gvhmr(a.chunks, rows)
     K = np.load(a.calib)["K"].astype(np.float64)
-    print("K (calibration)\n", K.round(2), "\nK used by GVHMR\n", K_gvhmr.round(2))
-    assert np.abs(K_gvhmr - K).max() < 1.0, "GVHMR K differs from the calibration; use the true-focal rerun"
-    target = smplx_to_smpl_verts(p)
+    if a.target_verts:
+        tv = np.load(a.target_verts)
+        assert len(tv["verts"]) == len(rows)
+        target = torch.from_numpy(tv["verts"]).float()
+        p = {"global_orient": torch.from_numpy(tv["init_global_orient"]).float(),
+             "body_pose": torch.from_numpy(tv["init_body_pose"]).float()}
+        print("K (calibration)\n", K.round(2), f"\ntarget vertices from {a.target_verts}")
+    else:
+        p, K_gvhmr = load_gvhmr(a.chunks, rows)
+        print("K (calibration)\n", K.round(2), "\nK used by GVHMR\n", K_gvhmr.round(2))
+        if a.k_from_gvhmr:
+            K = K_gvhmr.astype(np.float64)
+            print("using GVHMR's K (--k-from-gvhmr)")
+        assert np.abs(K_gvhmr - K).max() < 1.0, "GVHMR K differs from the calibration; use the true-focal rerun"
+        target = smplx_to_smpl_verts(p)
     print(f"fitting SMPL to {len(target)} frames of SMPL-topology vertices")
-    f = fit_smpl(target, p, a.steps)
+    f = fit_smpl(target, p, a.steps, kabsch=bool(a.target_verts))
     e = f["err"].numpy() * 1000
     stats = dict(rms_mm=float(np.sqrt((e ** 2).mean())), mean_mm=float(e.mean()), p99_mm=float(np.percentile(e, 99)),
                  max_mm=float(e.max()), worst_frame=names[int(e.mean(1).argmax())], beta=f["beta"][0].tolist())
