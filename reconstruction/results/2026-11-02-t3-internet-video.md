@@ -1,4 +1,4 @@
-# T3: GVHMR on internet video, rounds 1 and 2 (Q4), 2026-11-02
+# T3: GVHMR on internet video, rounds 1–3 (Q4), 2026-11-02/03
 
 Run from the laptop session on the GPU server. No server Claude session was used.
 
@@ -81,6 +81,28 @@ It was written from the two failure cases, so this is a check that the fix works
 
 **Limits.** A coach who moves more than the person exercising would still win. A click on the right person in the first frame would be the robust version.
 
+### Held-out test, round 3 (2026-11-03, 02:25–03:01): the rule does not generalise
+
+13 new Mixkit clips with a trainer or coach in view were listed and committed (`c25d3da`, 02:24) before any was downloaded. Each clip was run twice:
+- with GVHMR's default choice (largest summed box area);
+- with the new rule.
+
+The two chosen boxes were compared by eye on three frames per clip (`t3_choice_sheet.py`).
+
+| Outcome | Clips |
+|---|---|
+| Only one person tracked, no choice | 23652 |
+| Both rules pick the person exercising | 23345, 23261, 47462 |
+| Both people exercise, so either choice is fine | 8796 (same pick), 47417 and 48546 (different picks) |
+| The rules differ, **new rule right** | 47023 (battle ropes beside a standing trainer), 32798 (athlete running drills beside a coach) |
+| The rules differ, **default right** | 23641 (bench press; the new rule took the standing spotter), 13102 (exercise lying on a mat; it took the kneeling trainer), 48547 and 48559 (it took a small person in the background or in a mirror) |
+
+Nine clips have exactly one person exercising. On those, the default picks the person exercising in **7**, the new rule in **5**. The new rule fails in two ways:
+- when the exercise is done lying or sitting, so the box barely changes height;
+- when a small background figure moves more.
+
+So neither automatic rule is reliable. For telemedicine, the practical choice is that the therapist or patient taps the patient once in the first frame. The two coach clips of rounds 1–2 that the rule fixed were the cases it was designed on.
+
 ## 2. Setup
 
 | Field | Value |
@@ -90,7 +112,7 @@ It was written from the two failure cases, so this is a check that the fix works
 | GVHMR | `ee960bb`, the unofficial mirror weights (see `DATA_LOG.md`), static-camera mode, GVHMR's default focal length. `t3_gvhmr_lowmem.py` lowers GVHMR's preprocessing batch from 16 to 4 at runtime, so it is the same computation in smaller batches. The checkout was not changed. About 3.3 GB measured during the 2D-joint stage of clip 1, against about 4.7 GB at batch 16 (P2b) |
 | Clips | 15 stock clips, 6–23 s long, 720p to 4K, 24–30 fps (`t3_clips.txt`). Mixkit Stock Video Free License and Pexels License: free use, no redistribution as stock. Not in git. Each was cut to at most 30 s, scaled to at most 1080 px high and resampled to 30 fps |
 | Reference | REHAB24-6 Ex6 squats: P2's GVHMR true-focal chunks for PM_118 and PM_022, both cameras (12 segments), with the motion capture at 30 fps (video frame = mocap frame) |
-| Tools | `reconstruction/tools/t3_run.sh`, `t3_gvhmr_lowmem.py`, `t3_internet_metrics.py` (with `reps_depth` from round 2), `t3_peak_sheet.py`, `t3_clips.txt` (both rounds); for §1c `t3_gvhmr_pick.py` and `t3_pick_run.sh` |
+| Tools | `reconstruction/tools/t3_run.sh`, `t3_gvhmr_lowmem.py`, `t3_internet_metrics.py` (with `reps_depth` from round 2), `t3_peak_sheet.py`, `t3_clips.txt` (all three rounds); for §1c `t3_gvhmr_pick.py`, `t3_pick_run.sh` and `t3_choice_sheet.py` |
 
 ## 3. Commands
 
