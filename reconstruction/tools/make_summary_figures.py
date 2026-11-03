@@ -37,46 +37,53 @@ def style(ax, grid_axis="y"):
 
 
 def fig_cameras(out):
-    # 2026-10-27-t1-multiview.md, camera-count table: MPJPE, 10 limb joints, CMU Panoptic 171204_pose1.
-    spread = {3: [24.6, 22.7, 21.8], 4: [20.0, 18.3, 18.6], 5: [16.2, 16.3, 18.0], 6: [14.8, 18.7, 16.8]}
+    # 2026-10-27-t1-multiview.md (3-6 and 31 cameras) and 2026-11-03-t1c-seven-eight-cameras.md (7, 8):
+    # MPJPE, 10 limb joints, CMU Panoptic 171204_pose1.
+    spread = {3: [24.6, 22.7, 21.8], 4: [20.0, 18.3, 18.6], 5: [16.2, 16.3, 18.0], 6: [14.8, 18.7, 16.8],
+              7: [16.7, 14.3, 14.2], 8: [14.0, 15.8, 14.7]}
     lost = {3: [True, True, False]}          # subsets that dropped 23-28% of the joints
     clustered5 = [26.0, 24.6]                # 5 cameras bunched on one side (87-104 degree arc)
+    clustered8 = 18.4                        # 8 cameras bunched on one side (157 degree arc)
     all31 = 11.7
-    xs = [0, 1, 2, 3, 4.3]
-    labels = ["3", "4", "5", "6", "all 31"]
+    counts = (3, 4, 5, 6, 7, 8)
+    xs = [0, 1, 2, 3, 4, 5, 6.3]
+    labels = ["3", "4", "5", "6", "7", "8", "all 31"]
 
-    fig, ax = plt.subplots(figsize=(7.2, 4.0), dpi=150)
+    fig, ax = plt.subplots(figsize=(8.2, 4.0), dpi=150)
     style(ax)
     means = []
-    for x, n in zip(xs[:4], (3, 4, 5, 6)):
+    for x, n in zip(xs[:6], counts):
         vals = spread[n]
         means.append(sum(vals) / 3)
         for i, v in enumerate(vals):
             hollow = lost.get(n, [False] * 3)[i]
             ax.plot(x - 0.32 + 0.1 * i, v, "o", ms=6, mfc=SURFACE if hollow else "#86b6ef",
                     mec=BLUE if hollow else SURFACE, mew=1.5 if hollow else 1.0, zorder=3)
-    ax.plot(xs[:4] + [xs[4]], means + [all31], "-", color=BLUE, lw=2, zorder=2)
-    ax.plot(xs[:4] + [xs[4]], means + [all31], "o", ms=9, color=BLUE, mec=SURFACE, mew=2, zorder=4)
-    for x, m in zip(xs[:4], means):
-        ax.annotate(f"{m:.1f}", (x, m), xytext=(14, 0), textcoords="offset points", va="center",
+    ax.plot(xs, means + [all31], "-", color=BLUE, lw=2, zorder=2)
+    ax.plot(xs, means + [all31], "o", ms=9, color=BLUE, mec=SURFACE, mew=2, zorder=4)
+    for x, m in zip(xs[:6], means):
+        ax.annotate(f"{m:.1f}", (x, m), xytext=(0, -16), textcoords="offset points", ha="center",
                     color=INK, fontsize=10)
-    ax.annotate(f"{all31:.1f} mm", (xs[4], all31), xytext=(0, -16), textcoords="offset points",
+    ax.annotate(f"{all31:.1f} mm", (xs[6], all31), xytext=(0, -16), textcoords="offset points",
                 ha="center", color=INK, fontsize=10)
     for i, v in enumerate(clustered5):
-        ax.plot(2.32 + 0.12 * i, v, "D", ms=7, color=ORANGE, mec=SURFACE, mew=1.5, zorder=4)
-    ax.annotate("5 cameras bunched\non one side: 25-26 mm", (2.44, 25.3), xytext=(12, 0),
-                textcoords="offset points", va="center", color=INK2, fontsize=9.5)
-    ax.text(-0.45, 13.0, "hollow = this camera set\nlost 23-28% of the joints", color=INK2, fontsize=9.5)
+        ax.plot(2.25 + 0.12 * i, v, "D", ms=7, color=ORANGE, mec=SURFACE, mew=1.5, zorder=4)
+    ax.plot(5.25, clustered8, "D", ms=7, color=ORANGE, mec=SURFACE, mew=1.5, zorder=4)
+    ax.annotate("bunched on one side", (2.45, 25.3), xytext=(10, 0), textcoords="offset points", va="center",
+                color=INK2, fontsize=9.5)
+    ax.annotate("8 bunched: 18.4", (5.25, clustered8), xytext=(10, 6), textcoords="offset points", va="bottom",
+                color=INK2, fontsize=9.5)
+    ax.text(-0.45, 5.0, "hollow = this camera set\nlost 23-28% of the joints", color=INK2, fontsize=9.5)
     ax.set_xticks(xs, labels)
-    ax.set_xlim(-0.5, 4.8)
+    ax.set_xlim(-0.5, 6.8)
     ax.set_ylim(0, 30)
     ax.set_xlabel("Number of cameras, spread around the person")
     ax.set_ylabel("3D joint error (mm), lower is better")
-    ax.set_title("Q1. More cameras help, but 5 spread cameras get most of the way",
+    ax.set_title("Q1. Spread cameras: 5 get most of the way, our 8 reach 14.8 mm",
                  loc="left", fontsize=12, color=INK, pad=12)
     ax.text(0, -0.25, "CMU Panoptic, 392 frames, 10 limb joints, EasyMocap triangulation vs. the dome's own 3D. "
-            "Small dots: 3 camera\nsubsets per count; big dots: their mean. Source: results/2026-10-27-t1-multiview.md",
-            transform=ax.transAxes, fontsize=8.5, color=MUTED, va="top")
+            "Small dots: 3 camera\nsubsets per count; big dots: their mean. Sources: results/2026-10-27-t1-multiview.md, "
+            "2026-11-03-t1c-seven-eight-cameras.md", transform=ax.transAxes, fontsize=8.5, color=MUTED, va="top")
     fig.tight_layout()
     fig.savefig(out / "q1_camera_count.png", bbox_inches="tight")
     plt.close(fig)
