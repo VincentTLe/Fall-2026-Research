@@ -22,7 +22,8 @@ Section 1 is enough for a quick read. The overview and figures are in the [top-l
 | 2026-10-29 | [T2b cameras and benchmark](2026-10-29-t2b-calibration-benchmark.md) | Q2, benchmark | GVHMR has 6.0 cm error on the REHAB24-6 benchmark, against 8.4 cm for the paper's best. The authors' newer cameras fit the video better: two cameras reach 42.9 mm |
 | 2026-10-29 | [Summary for the Nov 3 meeting](2026-10-29-summary.md) | All | What Q1–Q4 show and don't show, where files disagree, the smallest next experiment for each gap, a 7-slide outline |
 | 2026-11-02 | [T2c two cameras + SMPL](2026-11-02-t2c-twocam-smpl.md) | Q2 | An SMPL fit to two-camera HRNet 2D gives 4.83 cm on the paper's protocol, against GVHMR's 6.28 (12 recordings). Body shape improves slightly (41.2 vs. 43.1 mm after alignment), position does not (57.3 vs. 53.3 mm) |
-| 2026-11-02 | [T3 internet video](2026-11-02-t3-internet-video.md) | Q4, first pass | 15 stock clips. GVHMR is consistent with the image on 9; repetition counts are right on 3 of 6 clips checked by eye. It fails on a silhouette, a strict profile view, and a clip where it followed the coach instead of the person exercising |
+| 2026-11-02 | [T3 internet video](2026-11-02-t3-internet-video.md) | Q4 | 41 stock clips in two rounds. GVHMR is consistent with the image on 20. The counter, fixed before round 2, is exact on 4 of 4 new clips where the right person is tracked. In 2 of 3 clips with a coach, it followed the coach |
+| 2026-11-02 | [Depth noise](2026-11-02-depth-noise.md) | Q2, Q3 | GVHMR's depth error is mostly a constant offset plus slow drift (17 of 72 mm is jitter), so smoothing does not help. Depth must come from a second camera |
 | — | [DATA_LOG.md](DATA_LOG.md) | Provenance | Every dataset and model downloaded, with license and checksum |
 | — | [figures/](figures/) | Overview | Summary figures, drawn by [`../tools/make_summary_figures.py`](../tools/make_summary_figures.py) |
 

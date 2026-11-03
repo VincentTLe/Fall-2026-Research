@@ -1,4 +1,4 @@
-# T3: GVHMR on internet video, first pass (Q4), 2026-11-02
+# T3: GVHMR on internet video, rounds 1 and 2 (Q4), 2026-11-02
 
 Run from the laptop session on the GPU server. No server Claude session was used.
 
@@ -26,6 +26,44 @@ On internet clips, 6 were checked by eye against the video frames at each counte
 - **A strict profile view** (mixkit_52103, lunge seen from the side): 48% coverage and 7.4% projection error. This is the hidden-limb problem P2 found on REHAB24-6.
 - **Two people in the frame** (mixkit_23914): the tracker picks the larger, more visible person, who here is the coach. This matters for telemedicine, where a therapist is often in the picture. REHAB24-6 also marks repetitions with extra people in view.
 
+## 1b. Round 2: 26 more clips, and a held-out test of the counter (2026-11-02, 22:00–22:48)
+
+**The rule was fixed first.** After round 1, the counter got one rule: keep a peak only if it reaches at least 0.75 × the clip's 95th-percentile knee flexion. It was committed (`ee5acf7`, 21:59) together with the list of 26 new clips, before any of them was downloaded. That makes round 2 a held-out test.
+
+**Clips.** 26 new Mixkit clips:
+- 9 squat, including 4 wall-ball squats, one with a coach, and one holding a baby;
+- 7 lunge, including one with a coach and one sprint start;
+- 3 general fitness;
+- 7 others: two physical-therapy sessions with a nurse, older adults exercising, an older man on a treadmill, two home workouts.
+
+**Checks.** 11 of 26 pass both checks (coverage ≥ 97%, projection error ≤ 3.5%), against 9 of 15 in round 1. Most failures are:
+- wall-ball squats, where a ball flies in front of the body (11–78% coverage);
+- clips where the legs are out of view or the person is small and dark.
+
+One physical-therapy clip fails almost completely: an older woman with a nurse, at 7% coverage.
+
+**The counter on known truth.** On REHAB24-6, the depth rule gives GVHMR the same count as motion capture in 12 of 12 segments (10 of 12 without it). In 4 of the 12 segments it drops one dip (of 7–9), in GVHMR and motion capture alike. These are shallower dips, so the rule would miss **shallow repetitions**, which in rehab are often the incorrect ones.
+
+**Counts checked by eye** on 9 round-2 clips:
+
+| Clip | Counted (depth rule) | Seen in the video |
+|---|---|---|
+| mixkit_52117 squat | 3 | 3, correct |
+| mixkit_36062 squat holding a baby | 5 | 5, correct |
+| mixkit_52110 lunge | 5 | 5, correct; a 6th lunge is cut off by the end of the clip |
+| mixkit_24304 lunge, coach beside | 3 | 3, correct. The tracked box covers both people |
+| mixkit_24305 squat, coach beside | 5 | **wrong person**: GVHMR followed the standing coach. Knee flexion never exceeds 55° |
+| mixkit_52316 lunge, small in a dark hall | 5 | knee flexion stays at 90–140° while the man stands: wrong angles, so no valid count |
+| mixkit_52098 lunge, camera looking up | 4 | the legs are out of view: cannot be checked |
+| mixkit_8983 sprint start, then running | 3 | not an exercise: running strides counted |
+| mixkit_5493 physical therapy with a nurse | 0 | 7% coverage: no usable pose |
+
+So where the right person is tracked and the legs are visible, the rule counted **4 of 4 new clips exactly**. The failures are upstream of the counter:
+- **picking the person:** 2 of the 3 clips with a coach followed the coach (23914, 24305);
+- **visibility**.
+
+Applied after the fact to round 1, the rule gives 14 for mixkit_23913, which matches the video. It gives 2 for mixkit_45960, against 3 seen, one of which is cut off at the end. Round 1 was used to design the rule, so these two are not a test.
+
 ## 2. Setup
 
 | Field | Value |
@@ -35,7 +73,7 @@ On internet clips, 6 were checked by eye against the video frames at each counte
 | GVHMR | `ee960bb`, the unofficial mirror weights (see `DATA_LOG.md`), static-camera mode, GVHMR's default focal length. `t3_gvhmr_lowmem.py` lowers GVHMR's preprocessing batch from 16 to 4 at runtime, so it is the same computation in smaller batches. The checkout was not changed. About 3.3 GB measured during the 2D-joint stage of clip 1, against about 4.7 GB at batch 16 (P2b) |
 | Clips | 15 stock clips, 6–23 s long, 720p to 4K, 24–30 fps (`t3_clips.txt`). Mixkit Stock Video Free License and Pexels License: free use, no redistribution as stock. Not in git. Each was cut to at most 30 s, scaled to at most 1080 px high and resampled to 30 fps |
 | Reference | REHAB24-6 Ex6 squats: P2's GVHMR true-focal chunks for PM_118 and PM_022, both cameras (12 segments), with the motion capture at 30 fps (video frame = mocap frame) |
-| Tools | `reconstruction/tools/t3_run.sh`, `t3_gvhmr_lowmem.py`, `t3_internet_metrics.py`, `t3_peak_sheet.py`, `t3_clips.txt` |
+| Tools | `reconstruction/tools/t3_run.sh`, `t3_gvhmr_lowmem.py`, `t3_internet_metrics.py` (with `reps_depth` from round 2), `t3_peak_sheet.py`, `t3_clips.txt` (both rounds) |
 
 ## 3. Commands
 
@@ -90,6 +128,39 @@ The annotated repetition counts are lower than both counts in 5 of the 12 segmen
 | mixkit_52101 | lunge | 684 | 100 | 3.31 | 5.32 | 20–108 | 2 |
 | mixkit_45960 | lunge | 382 | 100 | 2.67 | 1.66 | 21–110 | 6 |
 
+**Round 2** (26 clips; bold = fails a check):
+
+| Clip | What | Frames | Coverage % | Reproj % | Jitter | Knee p5–p95 (°) | Reps | Reps, depth rule |
+|---|---|---|---|---|---|---|---|---|
+| mixkit_52082 | squat | 399 | **53.1** | **6.01** | 3.17 | 15–78 | 2 | 2 |
+| mixkit_52116 | squat | 166 | 100.0 | 2.54 | 3.48 | 15–122 | 1 | 1 |
+| mixkit_52117 | squat | 211 | 100.0 | 1.96 | 3.61 | 12–126 | 3 | 3 |
+| mixkit_24305 | squat, coach beside | 570 | 100.0 | 2.27 | 1.92 | 9–34 | 5 | 5 |
+| mixkit_36062 | squat holding a baby | 405 | 100.0 | 2.38 | 2.71 | 7–138 | 5 | 5 |
+| mixkit_44425 | wall-ball squat | 900 | **78.2** | **3.83** | 14.47 | 8–136 | 11 | 5 |
+| mixkit_44422 | wall-ball squat | 671 | **23.4** | **10.61** | 11.73 | 59–99 | 8 | 8 |
+| mixkit_44424 | wall-ball squat | 472 | **44.3** | **4.42** | 9.89 | 9–127 | 5 | 4 |
+| mixkit_44423 | wall-ball squat | 747 | **11.0** | **10.8** | 14.03 | 40–116 | 7 | 7 |
+| mixkit_52107 | fitness | 485 | **40.6** | **5.21** | 2.41 | 24–80 | 3 | 3 |
+| mixkit_52115 | fitness | 358 | **89.9** | **4.92** | 6.21 | 50–73 | 2 | 2 |
+| mixkit_52111 | fitness | 472 | **33.5** | **9.55** | 10.38 | 55–126 | 6 | 6 |
+| mixkit_52098 | lunge, camera looking up | 558 | **93.2** | **4.11** | 4.52 | 27–107 | 4 | 4 |
+| mixkit_52140 | lunge | 353 | 100.0 | 2.96 | 1.46 | 33–118 | 0 | 0 |
+| mixkit_52316 | lunge, small in a dark hall | 375 | 100.0 | 2.51 | 6.85 | 90–136 | 5 | 5 |
+| mixkit_52110 | lunge | 501 | 100.0 | 2.23 | 2.31 | 20–115 | 5 | 5 |
+| mixkit_52120 | lunge | 687 | **95.2** | **5.23** | 3.6 | 13–46 | 2 | 2 |
+| mixkit_24304 | lunge, coach beside | 391 | 100.0 | 2.01 | 1.7 | 11–95 | 3 | 3 |
+| mixkit_8983 | sprint start, then running | 538 | **94.6** | **4.86** | 7.98 | 13–116 | 4 | 3 |
+| mixkit_5493 | elderly woman in physical therapy, with a nurse | 429 | **7.2** | **6.63** | 2.63 | 19–66 | 0 | 0 |
+| mixkit_5561 | man in physical therapy, with a nurse | 568 | 100.0 | **5.65** | 0.82 | 87–96 | 0 | 0 |
+| mixkit_36121 | adult women exercising outdoors | 657 | 100.0 | 2.79 | 1.39 | 13–26 | 0 | 0 |
+| mixkit_36140 | adult women with dumbbells | 600 | 100.0 | 1.2 | 1.47 | 8–10 | 0 | 0 |
+| mixkit_26274 | elderly man on a treadmill | 413 | 100.0 | 2.61 | 7.88 | 12–66 | 12 | 12 |
+| mixkit_21969 | man working out at home | 524 | **91.2** | **4.58** | 3.15 | 100–113 | 0 | 0 |
+| mixkit_42899 | woman with small dumbbells | 345 | 100.0 | **4.7** | 1.44 | 6–9 | 0 | 0 |
+
+Round 2 cost: 26 clips in 49 min, mostly on GPU 0 and some on GPU 1 when GPU 0 was below 5000 MiB free. The watchdog never triggered.
+
 Cost: 15 clips in 26 min (20:32–20:58) on GPU 0, one at a time. Peak RAM was 6.9–7.0 GB per job.
 
 ## 5. Checks
@@ -103,7 +174,7 @@ Cost: 15 clips in 26 min (20:32–20:58) on GPU 0, one at a time. Peak RAM was 6
 
 - **First attempt at clip 1 was on the busy GPU.** It ran on GPU 1, where the other user's job was at 100% use. I changed the GPU choice to prefer the least-used GPU and restarted. The old job kept running in its own scope after the restart, writing to the same folder, and I stopped it about a minute later. It was my own process; nothing else was touched. Clip 1's output reuses the box and 2D-joint files the first attempt saved. Its other files were written by the second run.
 - **Jitter is not comparable across clips.** Clips recorded at 24–25 fps were resampled to 30 fps, which repeats frames and adds artificial acceleration. Fast repetitions (mixkit_23913) also raise it. Only the silhouette clip's 21 mm/frame² is clearly a failure.
-- **The counter has two known weaknesses on these clips.** It counts small dips at the start of a set, and it counts the steps between lunges. A depth rule, for example "at least 75% of the deepest bend", would fix both cases seen here. It was not applied, because it would be tuned on the same clips.
+- **Round 1's two counter weaknesses** (small dips at the start of a set, steps between lunges) led to the depth rule. It was fixed before round 2 and tested there (§1b). Its known cost is that it misses shallow repetitions.
 - **The other 9 clips' counts were not checked by eye.**
 - **No overlay videos were rendered** (GPU memory). The avatar from camera 18 and the smoothed-pose avatar test also wait for a free GPU.
 

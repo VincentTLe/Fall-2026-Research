@@ -25,6 +25,7 @@ for name in sys.argv[3:]:
     flex = knee_flexion(z["incam"], SMPL_LEG).max(1)
     f = savgol_filter(flex, 9, 2)
     peaks, _ = find_peaks(f, prominence=25, distance=18)
+    keep = f[peaks] >= 0.75 * np.percentile(f, 95)   # reps_depth rule (t3_internet_metrics.py)
     cap = cv2.VideoCapture(str(root / "clips" / f"{name}.mp4"))
     frames = []
     for p in peaks[:8]:
@@ -33,12 +34,15 @@ for name in sys.argv[3:]:
         if ok:
             x0, y0, x1, y1 = z["bbx_xyxy"][p].astype(int)
             im = cv2.rectangle(im, (x0, y0), (x1, y1), (0, 200, 255), 4)
+            col = (52, 104, 235) if keep[list(peaks).index(p)] else (150, 150, 150)
+            im = cv2.copyMakeBorder(im, 12, 12, 12, 12, cv2.BORDER_CONSTANT, value=col)
             h = 300
             frames.append(cv2.resize(im, (int(im.shape[1] * h / im.shape[0]), h)))
     fig, ax = plt.subplots(figsize=(10, 2.2), dpi=100)
     ax.plot(f, color="#2a78d6")
-    ax.plot(peaks, f[peaks], "o", color="#eb6834")
-    ax.set_title(f"{name}: {len(peaks)} counted, knee flexion (deg)", fontsize=10, loc="left")
+    ax.plot(peaks[keep], f[peaks][keep], "o", color="#eb6834")
+    ax.plot(peaks[~keep], f[peaks][~keep], "o", color="#999999")
+    ax.set_title(f"{name}: {len(peaks)} peaks, {int(keep.sum())} kept by the depth rule (orange border = kept)", fontsize=10, loc="left")
     fig.tight_layout()
     fig.canvas.draw()
     plot = cv2.cvtColor(np.asarray(fig.canvas.buffer_rgba())[..., :3], cv2.COLOR_RGB2BGR)
