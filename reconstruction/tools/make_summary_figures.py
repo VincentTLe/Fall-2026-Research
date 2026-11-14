@@ -114,8 +114,8 @@ def fig_one_vs_two(out):
     fig.suptitle("Q2. Two cameras beat one, most of all for where the body is", x=0.01, ha="left",
                  fontsize=12, color=INK)
     fig.text(0.01, -0.06, "REHAB24-6 (rehab exercises, motion-capture ground truth), 12 recordings, the same 183 "
-             "repetitions for every row, authors' newer cameras.\nBlue = two cameras, orange = one camera. GVHMR used "
-             "unofficial weights. Sources: results/2026-10-27-t2-monocular.md, 2026-10-29-t2b-calibration-benchmark.md",
+             "repetitions for every row, authors' newer cameras.\nBlue = two cameras, orange = one camera. "
+             "Sources: results/2026-10-27-t2-monocular.md, 2026-10-29-t2b-calibration-benchmark.md",
              fontsize=8.5, color=MUTED, va="top")
     fig.tight_layout()
     fig.savefig(out / "q2_one_vs_two_cameras.png", bbox_inches="tight")
@@ -141,8 +141,8 @@ def fig_benchmark(out):
     ax.set_xlabel("3D joint error (cm) after the best rotation, shift and scale, lower is better")
     ax.set_title("Q2c. On the REHAB24-6 authors' own benchmark, GVHMR has lower error than every method they tested",
                  loc="left", fontsize=12, color=INK, pad=12)
-    fig.text(0.01, -0.03, "All 65 recordings, both cameras, 1,072 repetitions, the paper's 12 joints. Blue = GVHMR "
-             "(unofficial weights), orange = the paper's Table 5.\nThe paper does not say whether its fit is per frame "
+    fig.text(0.01, -0.03, "All 65 recordings, both cameras, 1,072 repetitions, the paper's 12 joints. Blue = GVHMR, "
+             "orange = the paper's Table 5.\nThe paper does not say whether its fit is per frame "
              "or per repetition, so both are shown. Source: results/2026-10-29-t2b-calibration-benchmark.md",
              fontsize=8.5, color=MUTED, va="top")
     fig.tight_layout()

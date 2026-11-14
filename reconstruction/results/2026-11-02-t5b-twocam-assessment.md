@@ -1,5 +1,9 @@
 # T5b: two-camera exercise assessment on REHAB26 without calibration, 2026-11-02
 
+> **Update 2026-11-14:** the GVHMR weights used here came from an unofficial mirror. All five files have since been
+> compared with the official ones by SHA-256 and are identical (`DATA_LOG.md`). The caveat about unofficial weights
+> below no longer applies, and no number changes.
+
 ## 1. Result
 
 **Reproduction.** I implemented the paper's two calibration-free two-camera strategies (Jánošová et al.,

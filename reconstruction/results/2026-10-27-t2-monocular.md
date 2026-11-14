@@ -1,5 +1,9 @@
 # T2 single-camera reconstruction on REHAB24-6 (P2), 2026-10-27/28
 
+> **Update 2026-11-14:** the GVHMR weights used here came from an unofficial mirror. All five files have since been
+> compared with the official ones by SHA-256 and are identical (`DATA_LOG.md`). The caveat about unofficial weights
+> below no longer applies, and no number changes.
+
 ## 1. Result
 
 GVHMR (one camera, static-camera mode) on 399 clean repetitions of 12 REHAB24-6 recordings (all six exercises, lights

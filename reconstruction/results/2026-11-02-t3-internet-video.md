@@ -1,5 +1,9 @@
 # T3: GVHMR on internet video, rounds 1–3 (Q4), 2026-11-02/03
 
+> **Update 2026-11-14:** the GVHMR weights used here came from an unofficial mirror. All five files have since been
+> compared with the official ones by SHA-256 and are identical (`DATA_LOG.md`). The caveat about unofficial weights
+> below no longer applies, and no number changes.
+
 Run from the laptop session on the GPU server. No server Claude session was used.
 
 ## 1. Result

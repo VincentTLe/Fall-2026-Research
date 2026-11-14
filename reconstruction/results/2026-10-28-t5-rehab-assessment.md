@@ -1,5 +1,9 @@
 # T5: does GVHMR change "2D beats monocular 3D" for rehabilitation assessment? (REHAB26-ViewAngles), 2026-10-28
 
+> **Update 2026-11-14:** the GVHMR weights used here came from an unofficial mirror. All five files have since been
+> compared with the official ones by SHA-256 and are identical (`DATA_LOG.md`). The caveat about unofficial weights
+> below no longer applies, and no number changes.
+
 ## 1. Result
 
 **Reproduction.** I reimplemented the separability metric Ψ of Jánošová et al. (arXiv 2609.35726v2, Sec. 4.1) from the

@@ -1,8 +1,8 @@
 # T4b: two more GaussianAvatar runs on REHAB24-6 (better poses; another camera), 2026-11-02
 
-**Status: PENDING.** Data prepared and checked on CPU. Training has not started, because both GPUs are held by another
-user's jobs (about 43 GB used of 49 GB on each). The enabled user unit `t4b-avatar.service` waits for a GPU with
-24 GB free, then runs both. Numbers marked PENDING get filled in from its outputs.
+**Status: done.** The data were prepared and checked on CPU on Nov 2, while both GPUs were held by another user's
+jobs. The unit `t4b-avatar.service` waited for a GPU with 24 GB free, got GPU 0 on Nov 3 at 18:24, ran both
+trainings and their evaluations, and finished at 22:49. The results were read and written up on Nov 14.
 
 Follow-up to T4 Step 3 (`2026-10-27-t4-gaussian.md`). There, the avatar trained on camera 17 with GVHMR poses scored
 18.54 dB on held-out repetitions with raw test poses, and 28.06 dB once the test poses were refined on the test images.
@@ -16,9 +16,20 @@ So pose error, not appearance, is the limit.
 
 ## 1. Result
 
-PENDING (training not started).
+**Depth from a second camera closes about a quarter of the pose gap.** Run 1 uses T4's images and T4's 35 test
+frames; only the poses differ. With the two-camera poses, the held-out repetitions score **21.25 / 0.9560 / 0.0424**
+(PSNR / SSIM / LPIPS), against T4's 18.54 / 0.9430 / 0.0663. That is +2.7 dB, and LPIPS drops by a third. The
+refined-pose diagnostic, an upper bound, stays about where it was (28.37 against 28.06 dB). So the gap between raw
+and refined test poses shrinks from 9.5 dB to 7.1 dB, and pose is still the main limit.
 
-What is already known from the checks before training:
+**Camera 18 behaves like camera 17.** With GVHMR poses it scores 18.74 / 0.9547 / 0.0648, with an upper bound of
+28.30 dB. That gap of 9.6 dB is the same as T4's 9.5 dB. So with GVHMR's poses, the view changes little: the pose
+error costs about 9.5 dB in both views. This is not a clean view comparison, because the crop and the pose quality
+differ too (see 4).
+
+Both avatars render at 38.5 fps and trained in about 2 hours, with a peak of about 21 GB of GPU memory, as in T4.
+
+What was known from the checks before training:
 - **The two-camera poses line up with the person better than GVHMR's do**, judged against the SAM masks. Projected
   silhouette IoU is 0.835 on average against 0.813 for GVHMR (T4), and better in 311 of 389 frames. On the 35 test
   frames, it's 0.827 against 0.768.
@@ -111,15 +122,25 @@ The test-frame mean for T4 is recomputed here from T4's `check/iou.json`.
 - Run 2, frame 00735: the right person and a matching upper body, but the legs are misplaced: both mesh legs sit
   left of and below the real ones. An ordinary GVHMR pose error, not a wrong detection.
 
-### Results (PENDING)
+### Results
 
 | Run | Epoch 200 raw test poses PSNR / SSIM / LPIPS | epochs 120–180 | refined diagnostic | train time | peak GPU | FPS |
 |---|---|---|---|---|---|---|
 | T4 Step 3 (camera 17, GVHMR) | 18.54 / 0.9430 / 0.0663 | 18.70 → 18.55 | 28.06 / 0.9778 / 0.0197 | 2 h 00 min | 21.0 GB | 38.2 |
-| 1 `c17-twocam` | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
-| 2 `c18-gvhmr` | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| **1 `c17-twocam`** | **21.25 / 0.9560 / 0.0424** | 21.38 → 21.26 | 28.37 / 0.9791 / 0.0186 | 1 h 59 min | 21.0 GB | 38.5 |
+| 2 `c18-gvhmr` | 18.74 / 0.9547 / 0.0648 | 18.76 → 18.73 | 28.30 / 0.9801 / 0.0211 | 2 h 09 min | 21.7 GB | 38.5 |
 
-How to read them when they arrive:
+- **Epochs.** Run 1 at epochs 120 / 140 / 160 / 180 / 200: 21.38 / 21.35 / 21.25 / 21.26 / 21.25. Run 2: 18.76 /
+  18.79 / 18.75 / 18.73 / 18.74. Like T4, the score drops a little after epoch 120 as training fits its own poses.
+  Epoch 200 is reported because it was fixed in advance.
+- **Gap to the upper bound** (refined minus raw): T4 9.52 dB, run 1 7.12 dB, run 2 9.56 dB.
+- **LPIPS** is the value `eval.py` reports, as in T4. Its inputs are in [0, 1] where LPIPS expects [-1, 1]. On
+  correctly scaled inputs (`image_metrics.py`), run 1 is 0.0505 and run 2 is 0.0758.
+- **Peak GPU** is the card's peak during training minus the 3,864 MiB in use before training started
+  (`logs/t4b/<run>-train-gpumem.csv`): 21,000 and 21,704 MiB.
+- **FPS:** 35 test frames × 3 passes, mean 26.0 ms per frame for both runs.
+
+How to read them:
 - Run 1 against T4 uses the same images and the same test frames, so any change is down to the poses.
 - Run 2 against T4 is not a clean "number of views" test. It changes the view and the pose quality at once (IoU 0.779
   against 0.813), and the crop is larger (1080×1208), which changes how much background enters PSNR.
@@ -138,10 +159,28 @@ How to read them when they arrive:
   1080×1920 frames.
 - The watchdog was tested on a dummy job (see 2).
 
+After training (Nov 14):
+- **Two metric implementations agree.** At epoch 200, `eval.py` gives 21.25 and 18.74 dB, and `image_metrics.py`
+  gives 21.248 and 18.743 dB on the same renders. LPIPS `as_eval_py` is 0.0424 and 0.0648 in both.
+- **Renders viewed.** Test frames 00005 and 00020 were viewed side by side: ground truth, T4, run 1, camera-18 ground
+  truth, run 2. All renders are whole and in the right pose. In camera 17, run 1's avatar sits where the person is,
+  while T4's sits slightly higher, which matches the PSNR gain. The comparison image is kept out of git because
+  faces are visible.
+- **The watchdog never fired.** There is no `=== STOPPED` in `t4b-status.txt`, and every step exited 0.
+
 ## 6. Failed or skipped
 
-- No training yet (GPUs busy, by instruction).
+- Training waited about 20 hours for a free GPU (Nov 2, 22:38 to Nov 3, 18:24).
+- The turntable, novel-pose and GT|render videos of both runs were rendered (`stage1/`), but not viewed for this write-up.
 - Run 2's camera-18 SAM masks were checked by score and area only. Of the 6 overlays written, I viewed only
   frame 00735, where the mask outlines the person correctly.
 - The two-camera poses for run 1 come from HRNet 2D (T2c). Triangulating GVHMR's ViTPose 2D was better in T2c
   (42.9 against 53.3 mm). A fit on ViTPose 2D would probably give better poses still, but it was not done.
+
+## 7. Next step
+
+- **Better two-camera poses.** Run 1's poses come from HRNet 2D (T2c). Fit SMPL to ViTPose 2D from both cameras
+  (T2d's fit) and retrain run 1. T2c showed that ViTPose triangulates better (42.9 against 53.3 mm).
+- **Remove the three wrong-person frames** at the source, with a person-ID check before triangulation, instead of
+  dropping them by IoU.
+- **Train on both cameras' images.** GaussianAvatar's loader takes one camera, so this needs a loader change.

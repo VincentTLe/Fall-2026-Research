@@ -1,5 +1,9 @@
 # T2b: the authors' camera parameters, and GVHMR on the REHAB24-6 benchmark, 2026-10-29
 
+> **Update 2026-11-14:** the GVHMR weights used here came from an unofficial mirror. All five files have since been
+> compared with the official ones by SHA-256 and are identical (`DATA_LOG.md`). The caveat about unofficial weights
+> below no longer applies, and no number changes.
+
 Follow-up to `2026-10-27-t2-monocular.md`. New inputs: camera parameters sent by the dataset authors (email,
 2026-10-29), an "old" estimate (used in their publications and for the dataset's 2D joints) and a "new", more careful
 estimate; and author copies of "REHAB24-6: Physical Therapy Dataset for Analyzing Pose Estimation Methods" (SISAP 2024)
